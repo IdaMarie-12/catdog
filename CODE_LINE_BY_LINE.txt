@@ -1,0 +1,930 @@
+CAT AND DOG PROJECT
+LINE-BY-LINE CODE EXPLANATION
+
+This document is a companion to PROJECT_GUIDE.txt. It follows the current
+source files in execution order and explains the code using the line numbers
+shown by:
+
+    nl -ba config.py
+    nl -ba src/split.py
+    nl -ba src/dataset.py
+    nl -ba src/model.py
+    nl -ba src/utils.py
+    nl -ba src/train.py
+    nl -ba experiments/run_search.py
+    nl -ba src/evaluate.py
+    nl -ba src/visualize.py
+    nl -ba tests/test_catdog.py
+
+The line ranges below are explanatory landmarks, not a generated API
+reference. They can shift when source files are edited; the code behavior and
+symbol names are the authoritative reference.
+
+Blank lines are included for readability and do not execute. Comments and
+docstrings explain intent but do not change the model's calculations.
+
+
+1. config.py
+============
+
+Line 1
+    Module docstring. It identifies this file as the central configuration
+    module.
+
+Line 2
+    Imports Path from pathlib so filesystem paths can be constructed in a
+    platform-independent way.
+
+Line 4
+    ROOT is the absolute directory containing config.py. All project paths
+    are derived from ROOT rather than hard-coded separately in each script.
+
+Line 5
+    DATA_DIR points to data/catdog_data, which must contain cats and dogs
+    subdirectories.
+
+Line 6
+    PETS_DIR points to the optional personal images used for qualitative
+    predictions.
+
+Lines 7-9
+    OUT_DIR is the general output directory. CKPT_DIR stores model
+    checkpoints, HIST_DIR stores CSV training histories, and FIG_DIR stores
+    generated figures.
+
+Line 10
+    SPLIT_FILE is the JSON file containing train, validation, and test image
+    lists.
+
+Line 11
+    STATS_FILE caches the RGB mean and standard deviation calculated from the
+    training split.
+
+Line 12
+    RESULTS_FILE is the configured location for the experiment CSV. The
+    completed experiment table currently exists at experiments/results.csv;
+    the search script uses the configured path when it is run.
+
+Line 14
+    CLASS_FOLDERS maps folder names to integer labels. Cats are label 0 and
+    dogs are label 1.
+
+Line 15
+    CLASSES maps those integer labels back to display names.
+
+Line 17
+    SEED controls the deterministic data split.
+
+Line 18
+    IMG_SIZE sets the height and width used by the transforms: 128 by 128.
+
+Line 19
+    NUM_WORKERS controls how many worker processes load images. Setting it to
+    zero is a useful fallback on systems with DataLoader worker problems.
+
+Line 21
+    SPLIT stores the requested proportions: 70 percent training, 15 percent
+    validation, and 15 percent test.
+
+Lines 24-38
+    DEFAULTS stores the default model and training hyperparameters. These
+    values are used whenever a run does not provide an override.
+
+Line 25
+    base is the number of output channels in the first convolutional block.
+    Later blocks double this number.
+
+Line 26
+    n_blocks controls the number of convolutional blocks.
+
+Line 27
+    dropout is the probability used by the classifier's Dropout layer.
+
+Line 28
+    batchnorm controls whether BatchNorm2d is inserted after convolutions.
+
+Line 29
+    augment controls whether random training augmentation is enabled.
+
+Line 30
+    optimizer selects Adam, AdamW, or SGD in train.py.
+
+Line 31
+    lr is the optimizer learning rate.
+
+Line 32
+    weight_decay adds optimizer-level L2-style regularization.
+
+Line 33
+    batch_size is the number of training images processed before each update.
+
+Line 34
+    epochs is the maximum number of passes over the training data.
+
+Line 35
+    patience is the number of non-improving validation epochs allowed before
+    early stopping.
+
+Line 36
+    scheduler controls whether ReduceLROnPlateau is used.
+
+Line 37
+    seed controls model initialization and other training randomness.
+
+Line 40
+    BASELINE defines the deliberately unregularized comparison: no
+    augmentation, no dropout, and no weight decay.
+
+Lines 42-43
+    The loop creates all output directories when config.py is imported. This
+    means later scripts can save checkpoints and figures without first
+    creating the directories manually.
+
+
+2. src/split.py
+===============
+
+Line 1
+    Module docstring describing the split task and its normal command.
+
+Line 5
+    Imports json for writing split.json.
+
+Line 6
+    Imports Counter for printing class counts.
+
+Line 7
+    Imports Pillow's Image class to validate image files.
+
+Line 8
+    Imports scikit-learn's stratified splitting function.
+
+Line 9
+    Imports the project configuration.
+
+Line 11
+    EXTS lists the supported image suffixes. Other files are ignored.
+
+Lines 14-28: collect_items()
+    This function scans both class folders and returns valid image records
+    plus a list of corrupt files.
+
+Line 15
+    Creates two empty lists: items for valid images and bad for corrupt ones.
+
+Line 16
+    Iterates over each configured folder and its integer label.
+
+Line 17
+    Iterates through files in that folder in sorted order. Sorting gives a
+    stable starting order before the seeded split.
+
+Line 18
+    Skips files whose suffix is not in EXTS. lower() makes the check
+    case-insensitive.
+
+Lines 20-22
+    Opens the image and calls verify(). Pillow checks the file structure
+    without decoding it for training.
+
+Lines 23-25
+    If validation raises an exception, the path is recorded as corrupt and
+    the loop continues instead of crashing the whole split.
+
+Line 26
+    Stores the path relative to DATA_DIR together with its numeric label.
+    Relative paths make split.json portable within this project.
+
+Line 28
+    Returns valid items and corrupt paths.
+
+Lines 31-41: make_split(items)
+    This function performs the reproducible stratified split and is also used
+    directly by the tests.
+
+Line 32
+    Extracts labels for stratification.
+
+Line 33
+    Calculates the combined validation-plus-test fraction: 0.30.
+
+Lines 34-36
+    Uses train_test_split to create a 70 percent training set and a 30
+    percent temporary set. stratify preserves the class ratio and
+    random_state makes the result reproducible.
+
+Lines 37-40
+    Splits the temporary set into validation and test. The relative test
+    fraction is 0.15 / 0.30 = 0.5, so the temporary set is divided equally.
+
+Line 41
+    Returns a dictionary with train, val, and test lists.
+
+Lines 44-57: main()
+    This is the command-line entry point for creating split.json.
+
+Line 45
+    Collects valid and corrupt files.
+
+Lines 46-49
+    Prints the number of valid and corrupt files and lists corrupt paths.
+
+Line 50
+    Calls make_split to produce the three disjoint stratified lists.
+
+Lines 51-52
+    Serializes the split dictionary as JSON in split.json.
+
+Lines 53-55
+    Counts labels separately in each split and prints sizes and cat/dog
+    counts for a quick sanity check.
+
+Lines 58-59
+    Runs main only when this file is executed directly, not when imported by
+    tests or another module.
+
+
+3. src/dataset.py
+==================
+
+Lines 1-5
+    The imports provide JSON access, PyTorch tensors, Pillow image loading,
+    Dataset and DataLoader abstractions, torchvision transforms, and config.
+
+Lines 8-11: load_split()
+    Opens split.json and converts its JSON contents back into Python lists and
+    dictionaries.
+
+Lines 14-28: CatDogDataset
+    Defines the project-specific PyTorch Dataset.
+
+Line 15
+    Declares that the dataset follows the standard Dataset interface.
+
+Lines 17-19
+    Stores the image records and transform supplied by the caller.
+
+Line 21
+    Returns the number of image records.
+
+Lines 23-26
+    Reads one relative path and label, opens the image, converts it to RGB,
+    applies the transform, and returns the transformed tensor and label.
+
+Lines 30-51: get_stats()
+    Calculates and caches per-channel training normalization statistics.
+
+Line 31
+    Documents that only the training split is used.
+
+Lines 32-35
+    If stats.json already exists, loads and returns the cached mean and std.
+
+Lines 37-40
+    Creates a deterministic transform for statistics: resize and convert to
+    tensor, but do not augment or normalize yet.
+
+Lines 41-42
+    Creates a DataLoader over only split["train"] with a batch size of 64.
+
+Line 43
+    Initializes the pixel count, channel sums, and squared channel sums.
+
+Lines 44-47
+    Iterates over batches. n counts pixels per channel; s accumulates pixel
+    values; sq accumulates squared pixel values.
+
+Line 48
+    Computes the channel mean.
+
+Line 49
+    Computes standard deviation from E[x^2] - E[x]^2.
+
+Lines 50-52
+    Writes the lists to stats.json and returns them.
+
+Lines 55-67: get_transform()
+    Builds either the training transform or deterministic evaluation transform.
+
+Line 56
+    Reads the target image size from config.
+
+Lines 57-64
+    When training augmentation is enabled, applies random resized crop,
+    horizontal flip, rotation, and color jitter. These are on-the-fly
+    transformations: each access can produce a different valid view.
+
+Line 66
+    Without augmentation, resizes directly to the target dimensions.
+
+Lines 67-68
+    Appends tensor conversion and normalization to both paths.
+
+Lines 71-73: get_eval_transform()
+    Retrieves training-derived statistics and returns a non-random transform
+    for validation, test, and personal images.
+
+Lines 76-94: get_loaders()
+    Creates the train, validation, and test DataLoaders.
+
+Line 77
+    Allows callers to configure augmentation, batch size, worker count, and
+    an optional training subset.
+
+Lines 78-81
+    Selects the configured worker count, loads the split, loads statistics,
+    and optionally truncates the training records for the overfit check.
+
+Lines 83-87
+    Builds the training dataset with the requested training transform and
+    validation/test datasets with the deterministic evaluation transform.
+
+Lines 89-91
+    Configures worker behavior, pinned memory for CUDA, and persistent
+    workers only when worker processes are used.
+
+Line 92
+    Creates a seeded generator for reproducible training shuffling.
+
+Lines 93-97
+    Creates a shuffled training loader and ordered validation/test loaders.
+    Validation and test use batches of 64.
+
+Line 98
+    Returns all three loaders.
+
+Lines 101-104: denormalize()
+    Reverses normalization for plotting. The mean and standard deviation are
+    reshaped to broadcast across channels and spatial dimensions, then values
+    are clipped to the display range [0, 1].
+
+Lines 107-120
+    The direct-execution block computes statistics, selects four training
+    images, creates original and augmented views, plots them in a grid, and
+    saves augmentation_examples.png. This is a visual sanity check.
+
+
+4. src/model.py
+================
+
+Lines 1-4
+    Imports PyTorch, neural-network layers, and the trainable-parameter
+    counter.
+
+Lines 7-30: SmallCNN
+    Defines the custom convolutional neural network.
+
+Line 8
+    Documents the repeated block pattern and classifier head.
+
+Lines 10-11
+    Initializes the parent nn.Module and an empty layer list. in_ch starts at
+    3 because input images have RGB channels.
+
+Lines 12-18
+    For each block, calculates output channels as base times 2 to the block
+    index. Adds a 3x3 convolution with padding 1, optional BatchNorm2d,
+    ReLU, and 2x2 max pooling. The next block receives the current output
+    channel count.
+
+Line 19
+    Wraps the list of feature layers in nn.Sequential so they execute in
+    order.
+
+Line 20
+    Adds adaptive global average pooling. Regardless of the input spatial
+    size at this point, it produces one value per channel.
+
+Line 21
+    Adds configurable dropout before classification.
+
+Line 22
+    Adds a linear layer producing one logit for each class.
+
+Lines 24-26: forward()
+    Sends the input through features, global pooling, flattening, dropout, and
+    the final linear layer. The output is raw logits; CrossEntropyLoss
+    performs the appropriate log-softmax internally.
+
+Lines 29-30: build_model()
+    Reconstructs SmallCNN from a configuration dictionary. This ensures a
+    checkpoint can be loaded with the same architecture that created it.
+
+Lines 33-40: load_model()
+    Loads a checkpoint onto the selected device, rebuilds the model from the
+    stored configuration, restores learned parameters, switches to
+    evaluation mode, and returns the model and configuration.
+
+Lines 43-49
+    The direct-execution check builds the default model, runs a random batch
+    through it, prints the architecture, verifies the output shape is
+    batch-by-two, and reports trainable parameter count.
+
+
+5. src/utils.py
+================
+
+Lines 1-3
+    Imports Python random, NumPy, and PyTorch because all three can introduce
+    randomness during a run.
+
+Lines 6-11: set_seed()
+    Seeds Python, NumPy, PyTorch CPU, and CUDA random generators. This makes
+    initialization, shuffling, and augmentation more reproducible.
+
+Lines 14-19: get_device()
+    Selects CUDA first, Apple MPS second, and CPU otherwise. Model and
+    batches are moved to the selected device during training and inference.
+
+Lines 22-23: count_parameters()
+    Adds the number of elements in every trainable parameter tensor. Frozen
+    tensors, if any existed, would not be counted.
+
+
+6. src/train.py
+================
+
+Lines 1-10
+    Imports argument parsing, CSV writing, PyTorch, the loss module,
+    configuration, data loaders, model construction, and utility functions.
+
+Lines 13-34: run_epoch()
+    Runs one complete pass over a loader in either training or evaluation
+    mode.
+
+Line 15
+    Training is true only when an optimizer was supplied.
+
+Line 16
+    model.train(training) switches Dropout and BatchNorm to the correct mode.
+
+Line 17
+    Initializes weighted loss, correct-prediction count, and example count.
+
+Line 18
+    Enables gradients only for training. Evaluation avoids building gradient
+    graphs and therefore uses less memory.
+
+Lines 19-20
+    Iterates through batches and moves images and labels to the chosen
+    accelerator or CPU.
+
+Line 21
+    Computes two logits per image by calling the model.
+
+Line 22
+    Computes cross-entropy loss against integer class labels.
+
+Lines 23-26
+    During training, clears old gradients, backpropagates the loss, and
+    updates parameters with the optimizer.
+
+Lines 27-29
+    Accumulates total loss weighted by batch size and counts argmax
+    predictions that match the labels.
+
+Line 30
+    Returns average loss and accuracy over the complete loader.
+
+Lines 33-42: make_optimizer()
+    Selects Adam, AdamW, or SGD. Every optimizer receives the configured
+    learning rate and weight decay; SGD additionally receives momentum 0.9.
+    Unsupported names raise ValueError instead of silently using another
+    optimizer.
+
+Lines 45-55: train()
+    Coordinates one full training run.
+
+Lines 46-51
+    Copies the configuration. If --overfit is used, disables regularization,
+    allows 100 epochs, prevents early stopping, and restricts training to 32
+    images so memorization can be tested.
+
+Line 53
+    Applies the configured seed.
+
+Lines 54-57
+    Selects a device, builds training and validation loaders, builds the CNN,
+    and counts trainable parameters.
+
+Lines 58-60
+    Creates CrossEntropyLoss, the selected optimizer, and an optional
+    ReduceLROnPlateau scheduler.
+
+Lines 62-66
+    In verbose mode, prints device and parameter count, then evaluates the
+    untrained model. A two-class random model is expected to have loss near
+    ln(2), about 0.693.
+
+Lines 68-71
+    Initializes history, best-validation state, patience counter, and the
+    checkpoint path.
+
+Lines 73-95
+    Repeats for each epoch: train on the training loader, evaluate on the
+    validation loader, optionally update the scheduler, append metrics, and
+    print progress.
+
+Lines 87-94
+    If validation loss improves, stores the best metrics, resets the patience
+    counter, and saves the model configuration and state_dict. Otherwise,
+    increments the patience counter and stops once patience is exhausted.
+
+Lines 97-101
+    Writes the epoch history CSV for normal runs. Overfit checks intentionally
+    do not create a normal checkpoint/history.
+
+Lines 103-108
+    Prints and returns the summary used by run_search.py, including parameter
+    count, best epoch, validation metrics, training accuracy at that epoch,
+    and the effective configuration.
+
+Lines 111-112: str2bool()
+    Converts common command-line true/false spellings into a Boolean.
+
+Lines 115-124: parse_args()
+    Defines --name, --overfit, --baseline, and one command-line option for
+    every DEFAULTS entry. The type of each option is inferred from its
+    default value.
+
+Lines 127-134
+    Builds a configuration from DEFAULTS, applies BASELINE when requested,
+    applies explicit command-line overrides, and starts the run. The overfit
+    run is stored under the fixed display name overfit_test.
+
+
+7. experiments/run_search.py
+=============================
+
+Lines 1-8
+    Module documentation describes the four-stage, resumable search.
+
+Lines 10-11
+    Imports argument parsing, CSV support, configuration, and the train()
+    function.
+
+Lines 13-22: BEST
+    Stores the validation-only configuration used by the original staged
+    search. It uses base 64, four blocks, AdamW, learning rate 1e-3, weight
+    decay 1e-4, batch size 32, no scheduler, no augmentation, and no
+    dropout. The later fair retest was run directly through train() and did
+    not replace this historical search definition.
+
+Lines 24-57: STAGES
+    Defines experiment names and overrides.
+
+Lines 25-33: Stage 1
+    Compares the baseline, augmentation, two dropout strengths, two weight
+    decay values, and BatchNorm disabled. This tests regularization choices.
+
+Lines 34-42: Stage 2
+    Compares three, four, and five blocks and base widths 8, 32, and 64. This
+    tests depth and width while carrying forward BEST.
+
+Lines 43-51: Stage 3
+    Compares learning rates, batch sizes, SGD, and a validation-loss
+    scheduler. This tests optimization behavior.
+
+Lines 52-57: Stage 4
+    Trains the selected configuration with seeds 42, 1, and 2. These runs
+    measure sensitivity to initialization and batch order.
+
+Lines 59-60
+    Defines the CSV column order: metrics first, then all default
+    hyperparameters.
+
+Lines 63-70: done_names()
+    If the results file does not exist, returns an empty set. Otherwise,
+    reads the CSV and returns all completed run names. This makes interrupted
+    searches resumable.
+
+Lines 73-79: append()
+    Opens the result file in append mode, writes a header for a new file, and
+    writes one result row.
+
+Lines 82-103
+    Parses the required stage number, obtains the stage definition, and loops
+    over experiments.
+
+Lines 88-91
+    Builds the run name and skips it if already recorded. Otherwise merges
+    DEFAULTS, BEST, and the experiment override.
+
+Lines 92-98
+    Trains the configuration and creates a compact row with best validation
+    metrics and the train-validation accuracy gap.
+
+Lines 99-103
+    Adds all hyperparameters, appends the result, and prints a concise
+    progress line.
+
+Experiment interpretation
+-------------------------
+
+The completed results show that:
+
+    Stage 1:
+        There was no clear effect from weight decay alone: wd1e-4 was only
+        about one percentage point above the no-decay baseline. wd1e-3 had
+        the lowest validation loss.
+        Dropout 0.5 performed poorly and BatchNorm removal reduced accuracy.
+
+    Stage 2:
+        Width 64 achieved the strongest validation result, approximately
+        79.4 percent accuracy and 0.486 validation loss. The wider model has
+        many more parameters, so the parameter/accuracy chart is important.
+
+    Stage 3:
+        AdamW with learning rate 1e-3 and batch size 32 remained strongest.
+        Batch size 64, SGD, and the tested scheduler were weaker in the
+        original short-budget comparison.
+
+    Stage 4:
+        Validation accuracy varied across seeds: approximately 79.4, 77.5,
+        and 75.0 percent. This is why reporting only one run would hide
+        training variability.
+
+    Fair retest:
+        The original augmented run had a shorter training budget, so
+        augmentation and no augmentation were retrained for up to 100 epochs
+        with patience 20 and ReduceLROnPlateau. The augmented configuration
+        achieved 81.7 percent validation accuracy for seed 42, and the two
+        additional seeds achieved 83.1 and 81.1 percent. This corrected
+        comparison led to the augmented model being promoted as final.
+
+
+8. src/evaluate.py
+===================
+
+Lines 1-10
+    Imports command-line parsing, JSON output, PyTorch, Matplotlib,
+    scikit-learn metrics, configuration, loaders, checkpoint loading, and
+    device selection.
+
+Lines 13-22: predict()
+    Switches the model to evaluation mode, disables gradients, computes logits
+    for every test batch, converts logits to probabilities with softmax, and
+    concatenates probabilities and labels in loader order.
+
+Lines 25-40: plot_confusion()
+    Draws the confusion matrix as an image, labels rows as true classes and
+    columns as predicted classes, writes cell counts, and saves the figure.
+
+Lines 43-64
+    The command-line entry point requires a checkpoint name, loads the model,
+    creates the non-augmented test loader, predicts all test images, and
+    prints accuracy.
+
+Lines 54-57
+    Computes the confusion matrix and classification report, then saves the
+    confusion figure.
+
+Lines 59-63
+    Compares predictions with test records, stores every wrong path and its
+    true class, predicted class, and confidence, and writes
+    misclassified_<name>.json.
+
+
+9. src/visualize.py
+====================
+
+Lines 1-14
+    Imports command-line parsing, CSV reading, math utilities, PyTorch,
+    neural-network layer types, Matplotlib, Pillow, configuration, dataset
+    helpers, prediction, checkpoint loading, and device selection.
+
+Lines 17-20: save_figure()
+    Applies a tight layout, saves a figure at 150 dpi with a bounding box,
+    and closes it to release memory.
+
+Lines 23-30: read_results()
+    Reads the configured results CSV. If the configured root-level path does
+    not exist, it falls back to experiments/results.csv, which is the current
+    completed-search location.
+
+Lines 33-49: plot_ablation_results()
+    Reads run names, validation accuracy, and train-validation gaps. Assigns
+    colors by stage and creates two bar charts: validation accuracy and the
+    accuracy gap. The shaded seed band uses fair_aug, fair_aug_s1, and
+    fair_aug_s2 when available, so its spread is approximately 0.010 rather
+    than the old final-seed spread.
+
+Lines 52-70: plot_accuracy_vs_parameters()
+    Plots the fair augmented width-8, width-16, and width-64 runs against
+    validation accuracy. The x-axis is logarithmic, and labels identify the
+    widths. This is the project's parsimony figure.
+
+Lines 73-91: plot_seed_variability()
+    Reads final, final_s1, and final_s2 rows, plots each validation accuracy,
+    draws the mean, and shades mean plus or minus sample standard deviation.
+
+Lines 94-98: _test_predictions()
+    Creates a clean test loader, calls evaluate.predict(), and returns
+    probabilities, labels, and test item records for reuse by several plots.
+
+Lines 101-115: _gradcam()
+    Selects the last convolutional layer, registers forward and backward
+    hooks, backpropagates the predicted-minus-other logit difference,
+    averages gradients over spatial positions, weights activation maps by
+    those gradients, sums them, applies ReLU, normalizes, and returns the
+    heatmap. If the positive map is empty, it reports the condition, uses the
+    magnitude of the signed map, and marks the panel title. Three of the six
+    regenerated panels used this fallback, so those maps are not strictly
+    class-specific evidence.
+
+Lines 118-143: plot_gradcam()
+    Selects correct and incorrect test examples, computes a Grad-CAM for the
+    predicted class, overlays it on the original image, and saves a grid with
+    three examples of each type.
+
+Lines 146-157: plot_confidence()
+    Separates confidence values for correct and incorrect test predictions
+    and plots two histograms. Most errors have modest confidence, but a
+    handful of failures are highly confident, so the model is mostly
+    well-behaved with some overconfident errors.
+
+Lines 160-173: plot_correct_examples()
+    Selects correctly classified test images and creates a labeled image grid
+    showing predicted class and confidence.
+
+Lines 176-189: plot_architecture()
+    Draws the final model as a sequence of labeled boxes: input, four
+    convolutional blocks, global average pooling, and two-logit output.
+    The boxes are spaced so the arrows run between, rather than through, the
+    box text.
+
+Lines 192-210: plot_curves()
+    Reads history CSV files for the requested run names and plots training
+    versus validation loss and accuracy over epochs.
+
+Lines 213-224: plot_filters()
+    Finds the first convolution, selects its first filters, scales each
+    filter to display range, and plots the learned RGB filter weights.
+
+Lines 227-244: plot_feature_maps()
+    Registers forward hooks on ReLU layers, captures activations for one
+    image, removes hooks, and plots selected feature maps from every block.
+
+Lines 247-267: plot_misclassified()
+    Predicts the test set, selects wrong indices, loads their original
+    images, labels them with true class, prediction, and confidence, and
+    saves a grid.
+
+Lines 270-290: plot_own_pets()
+    Finds supported files in my_pets, applies the evaluation transform, runs
+    softmax inference, and saves a grid with predicted class and confidence.
+    These images are qualitative examples, not test data.
+
+Lines 293-316
+    Parses the final checkpoint name and optional comparison runs, loads the
+    final model, and calls every plotting function. The result is the complete
+    figure set in outputs/figures.
+
+
+10. tests/test_catdog.py
+=========================
+
+Lines 1-7
+    Imports unittest, pathlib, system-path support, counters, PyTorch, and
+    project modules.
+
+Lines 10-13
+    Defines ROOT and adds both the project root and src directory to
+    sys.path. This allows tests to import config and source modules.
+
+Lines 16-23: CatDogTests.setUpClass()
+    Collects image records, fails if corrupt images are present, creates a
+    deterministic split, and stores it for all test methods.
+
+Lines 25-30: test_splits_do_not_overlap()
+    Converts each split's paths into sets and asserts every pairwise
+    intersection is empty. It also confirms that the total number of records
+    equals the number of unique paths.
+
+Lines 32-37: test_class_balance_is_preserved()
+    Checks the expected split sizes and equal cat/dog counts for train,
+    validation, and test.
+
+Lines 39-53: test_loader_batches_have_expected_shape()
+    Creates loaders with four-image training batches and zero workers,
+    obtains one batch from each loader, and checks image shape
+    (batch, 3, 128, 128) and label shape (batch,).
+
+Lines 55-58: test_model_forward_pass()
+    Builds the default model, sends a random batch through it, and verifies
+    that the output shape is (batch, number_of_classes), namely (4, 2).
+
+
+11. FILE-TO-FILE EXECUTION FLOW
+================================
+
+1. config.py is imported by the other modules and creates output folders.
+2. split.py imports config, validates images, and writes split.json.
+3. dataset.py reads split.json, calculates stats.json, and creates loaders.
+4. model.py builds the CNN from a configuration dictionary.
+5. train.py combines the loaders and model, computes loss, backpropagates,
+   updates weights, validates, and writes checkpoints/history files.
+6. run_search.py calls train.py repeatedly with controlled overrides and
+   writes experiment results.
+7. evaluate.py loads final.pth, predicts the held-out test set, and writes
+   metrics, a confusion figure, and misclassified_final.json.
+8. visualize.py loads the final checkpoint and reuses loaders and predictions
+   to create interpretation and comparison figures.
+9. tests/test_catdog.py imports split, dataset, and model components to check
+   the core invariants before submission.
+
+
+12. HOW THE EXPERIMENT RESULTS ARE USED
+=========================================
+
+The search uses validation loss and validation accuracy, not test accuracy,
+to choose BEST. The test set was evaluated after the original search and
+again after the fair retest; neither test result was used to choose the
+promoted configuration.
+
+The original staged search selected:
+
+    base=64, n_blocks=4, batchnorm=True
+    augment=False, dropout=0.0
+    optimizer=AdamW, learning rate=0.001
+    weight decay=0.0001, batch size=32, scheduler=False
+
+Its seed-42 validation result was 79.44 percent accuracy with validation loss
+0.4860, and its held-out test accuracy was 78.33 percent. The original
+checkpoint is preserved as outputs/checkpoints/original_final.pth.
+
+The fair retest used the same architecture but a matched longer budget:
+
+    augment=True, scheduler=True, epochs=100, patience=20
+
+The promoted current final checkpoints are fair_aug, fair_aug_s1, and
+fair_aug_s2, copied to final, final_s1, and final_s2 respectively. Their
+validation results were:
+
+    final     seed 42: 81.67 percent, validation loss 0.435
+    final_s1  seed 1:  83.06 percent, validation loss 0.423
+    final_s2  seed 2:  81.11 percent, validation loss 0.492
+
+The promoted seed-42 final test evaluation was:
+
+    test accuracy: 83.06 percent
+    test images: 360
+    misclassified images: 61
+
+Confusion matrix, with true classes as rows and predictions as columns:
+
+    cat true: 153 cat predictions, 27 dog predictions
+    dog true:  34 cat predictions, 146 dog predictions
+
+The fair retest is reported separately because the original augmented run
+received a shorter training budget. The promoted model is selected using
+validation results; the test set is reported only for the selected seed-42
+checkpoint.
+
+The fair augmentation result is still suggestive rather than definitive, but
+it now uses three seeds per setting. The no-augmentation runs averaged about
+78.1 percent validation accuracy (79.8, 77.5, and 76.9 percent), versus
+about 81.9 percent for the augmented runs. The test set was evaluated twice
+(78.3 percent for the original checkpoint and 83.1 percent for the promoted
+checkpoint), but promotion was based on validation results. The approximate
+95 percent interval for the promoted test accuracy is 79-87 percent.
+
+The fair model-size follow-up tested base widths 8 and 16. They reached
+77.8 percent with 24,778 parameters and 79.4 percent with 97,938 parameters,
+respectively. The 64-base model remains the accuracy choice, while the
+smaller runs provide evidence for the parameter/accuracy trade-off.
+
+
+13. IMPORTANT INTERPRETATION NOTES
+===================================
+
+Training accuracy and validation accuracy are not measured under identical
+conditions when augmentation or dropout is enabled. Training mode can contain
+random image transformations and active dropout, while evaluation mode uses
+clean images and disables dropout. A train-validation gap must therefore be
+interpreted with the model mode and data transformation in mind.
+
+The original staged search selected augmentation=False and dropout=0.0, but
+that comparison was limited by its shorter training budget. The fair retest
+gave augmented and non-augmented models the same longer budget and found
+that augmentation improved validation accuracy by about four points. For
+seed 42, the curves also show that augmentation prevented the clear
+memorization pattern seen without augmentation; the best-epoch gap bars do
+not prove a general gap reduction across seeds. The promoted current final model therefore uses
+augmentation=True and dropout=0.0. The original no-augmentation checkpoints
+remain available for comparison.
+
+The available dataset contains 2,400 images rather than the 2,600 mentioned
+in the assignment handout. This should be reported and the original zip
+should be checked if possible.
+
+The my_pets predictions are not part of the test metric. They are a
+qualitative demonstration on images outside the labeled project dataset.
+
+The test suite should be run with:
+
+    PYTHONPATH=.:src python3 -m unittest discover -s tests -v
+
+The complete visualization command is:
+
+    PYTHONPATH=.:src python3 src/visualize.py --name final

@@ -1,0 +1,1160 @@
+CAT AND DOG CLASSIFICATION PROJECT
+Code and Deep Learning Explanation
+
+Purpose
+=======
+
+This project trains a convolutional neural network (CNN) to classify RGB
+images as either cats or dogs. The project is implemented with PyTorch and
+uses only the supplied cat-and-dog image dataset for training and evaluation.
+
+The project has four main goals:
+
+1. Create a reproducible, stratified data split and PyTorch DataLoaders.
+2. Build and train a CNN without using a pretrained network.
+3. Compare model and training choices using validation data.
+4. Evaluate the selected model and create visualizations that explain its
+   performance.
+
+The assignment requires a report as well as code and visualizations. This
+file explains the code and the deep-learning ideas used in the project. It
+can be used as technical background when writing the report.
+
+
+PROJECT STRUCTURE
+=================
+
+config.py
+    Central configuration: paths, image size, split ratios, default training
+    hyperparameters, and the baseline definition.
+
+src/split.py
+    Finds valid images, checks for corrupt files, and creates the fixed
+    stratified train/validation/test split.
+
+src/dataset.py
+    Implements the PyTorch Dataset, computes training-set normalization
+    statistics, defines augmentation and evaluation transforms, and creates
+    DataLoaders.
+
+src/model.py
+    Defines the CNN architecture, constructs a model from a configuration,
+    loads checkpoints, and performs a model forward-pass sanity check.
+
+src/train.py
+    Contains the training and validation loop, loss function, optimizers,
+    optional learning-rate scheduler, early stopping, checkpointing, and
+    command-line options.
+
+experiments/run_search.py
+    Runs the staged hyperparameter experiments and records one result row per
+    run. Completed runs can be skipped so the search can be resumed.
+
+src/evaluate.py
+    Evaluates one selected checkpoint on the test set and reports accuracy,
+    confusion matrix, class metrics, and misclassified images.
+
+src/visualize.py
+    Creates training curves, filters, feature maps, Grad-CAM heatmaps,
+    ablation charts, parameter-count charts, confidence histograms,
+    correctly classified examples, misclassified examples, an architecture
+    diagram, and predictions for images in my_pets/.
+
+src/utils.py
+    Provides random seeding, device selection, and trainable parameter
+    counting.
+
+tests/test_catdog.py
+    Tests that the splits do not overlap, class balance is preserved,
+    DataLoader batches have the expected shape, and the model forward pass
+    works.
+
+data/catdog_data/
+    The supplied images, in cats/ and dogs/ folders.
+
+my_pets/
+    Optional personal images used only for the final demonstration. They are
+    not used for training, validation, or test metrics.
+
+outputs/
+    Generated checkpoints, training histories, evaluation files, and figures.
+
+split.json
+    The generated list of relative image paths and labels for each split.
+
+stats.json
+    Cached per-channel mean and standard deviation calculated from the
+    training split.
+
+experiments/results.csv
+    The recorded hyperparameter search results. This is the results file
+    currently used for the completed staged search. The path is controlled by
+    config.RESULTS_FILE; if that setting points to the project root instead,
+    the same file is named results.csv there.
+
+requirements.txt
+    Python dependencies used by the project.
+
+
+HOW TO RUN THE PROJECT
+======================
+
+From the project root, the source directory is added to PYTHONPATH because
+the implementation files are in src/ while config.py is in the project root:
+
+    python3 -m pip install -r requirements.txt
+    export PYTHONPATH=.:src
+
+Create the split:
+
+    python3 src/split.py
+
+Create the augmentation illustration and calculate normalization statistics:
+
+    python3 src/dataset.py
+
+Check the model architecture and output shape:
+
+    python3 src/model.py
+
+Run the 32-image overfit sanity check:
+
+    python3 src/train.py --overfit
+
+Run the baseline:
+
+    python3 src/train.py --name baseline --baseline
+
+Run the staged search:
+
+    python3 experiments/run_search.py --stage 1
+    python3 experiments/run_search.py --stage 2
+    python3 experiments/run_search.py --stage 3
+    python3 experiments/run_search.py --stage 4
+
+The BEST dictionary in experiments/run_search.py is intentionally edited
+between stages using validation results. The test set must not be used to
+choose the best configuration.
+
+Evaluate the final checkpoint once:
+
+    python3 src/evaluate.py --name final
+
+Generate figures:
+
+    python3 src/visualize.py --name final
+
+Run the tests:
+
+    python3 -m unittest discover -s tests -v
+
+The device-selection code uses CUDA first, Apple MPS second, and CPU as a
+fallback. Therefore the same code can run on Google Colab with a CUDA GPU,
+on an Apple computer with MPS, or on a CPU.
+
+
+1. CONFIGURATION: config.py
+================================
+
+ROOT is the project directory. All other paths are created relative to ROOT,
+so the project does not depend on a particular computer's absolute paths.
+
+DATA_DIR points to data/catdog_data, which must contain cats/ and dogs/.
+PETS_DIR points to my_pets/.
+OUT_DIR, CKPT_DIR, HIST_DIR, and FIG_DIR hold generated outputs.
+SPLIT_FILE stores split.json.
+STATS_FILE stores stats.json.
+RESULTS_FILE is the experiment results CSV.
+
+CLASS_FOLDERS maps folder names to integer labels:
+
+    cats -> 0
+    dogs -> 1
+
+CLASSES provides human-readable names for those labels:
+
+    0 -> cat
+    1 -> dog
+
+IMG_SIZE is 128. Every image is resized or cropped to 128 by 128 pixels.
+NUM_WORKERS controls how many DataLoader worker processes load images.
+
+SPLIT requests 70 percent training data, 15 percent validation data, and
+15 percent test data.
+
+DEFAULTS contains the standard model and training settings:
+
+    base=16
+        Number of channels in the first convolutional block. Each later
+        block doubles the number of channels.
+
+    n_blocks=4
+        Number of convolutional blocks.
+
+    dropout=0.3
+        Default dropout probability.
+
+    batchnorm=True
+        Use Batch Normalization after convolution.
+
+    augment=True
+        Use training augmentation by default.
+
+    optimizer="adamw"
+        Default optimizer.
+
+    lr=1e-3
+        Initial learning rate.
+
+    weight_decay=1e-4
+        L2-style regularization used by AdamW or the other optimizers.
+
+    batch_size=32
+        Number of images processed before one parameter update.
+
+    epochs=60
+        Maximum number of passes through the training data.
+
+    patience=10
+        Number of validation epochs allowed without improvement before early
+        stopping.
+
+    scheduler=False
+        Whether to use ReduceLROnPlateau.
+
+    seed=42
+        Seed for model initialization and training randomness.
+
+BASELINE disables augmentation, dropout, and weight decay. It is deliberately
+weakly regularized so that the effect of regularization can be compared with
+the other runs.
+
+
+2. DATA SPLITTING: src/split.py
+================================
+
+collect_items()
+---------------
+
+collect_items() loops over the cats and dogs directories. It accepts JPG,
+JPEG, and PNG files. Each image is opened with Pillow and im.verify() is
+called. Corrupt images are recorded and skipped rather than being allowed to
+break training later.
+
+Each valid item is stored as:
+
+    [relative_path_inside_data_directory, integer_label]
+
+Using relative paths makes split.json portable within the project.
+
+make_split(items)
+-----------------
+
+The split is performed in two steps with scikit-learn's train_test_split:
+
+1. 70 percent goes to training and 30 percent goes into a temporary
+   validation/test group.
+2. The temporary group is split into 15 percent validation and 15 percent
+   test.
+
+The stratify argument uses the class labels at both steps. This keeps the
+cat/dog ratio approximately equal in every split. random_state=config.SEED
+makes the result reproducible.
+
+For the available dataset there are 2,400 images:
+
+    train: 1,680 images, 840 cats and 840 dogs
+    val:     360 images, 180 cats and 180 dogs
+    test:    360 images, 180 cats and 180 dogs
+
+The assignment description mentions 2,600 images, but this copy contains
+2,400. That discrepancy should be stated in the report unless the original
+zip can be shown to be incomplete.
+
+The test suite checks that the path sets do not overlap and that the expected
+class counts are present.
+
+
+3. DATASET AND DATALOADERS: src/dataset.py
+===========================================
+
+CatDogDataset
+-------------
+
+CatDogDataset is a subclass of torch.utils.data.Dataset. It implements:
+
+    __len__()
+        Returns the number of images.
+
+    __getitem__(i)
+        Opens image i, converts it to RGB, applies the assigned transform,
+        and returns (image_tensor, label).
+
+This is the standard PyTorch Dataset interface. DataLoader uses it to fetch
+individual images and assemble mini-batches.
+
+Training-set normalization
+---------------------------
+
+get_stats() computes one mean and one standard deviation for each RGB
+channel. It uses only the training split. This is important: calculating
+statistics from validation or test images would allow information from those
+sets to influence preprocessing.
+
+For each channel, the code calculates:
+
+    mean = sum(pixel values) / number of pixels
+    variance = mean(pixel values squared) - mean squared
+    std = square root of variance
+
+The result is cached in stats.json so that it does not need to be recomputed
+on every run.
+
+Normalization transforms a pixel x approximately as:
+
+    normalized_x = (x - mean) / std
+
+This usually gives the network inputs with more stable numerical ranges.
+
+Augmentation
+------------
+
+When train=True and augment=True, the training transform applies:
+
+    RandomResizedCrop
+        Crops a random part of an image and resizes it. This helps the model
+        tolerate changes in framing and object scale.
+
+    RandomHorizontalFlip
+        Reflects images horizontally with probability 0.5. This is generally
+        reasonable for cat and dog images because left-right orientation does
+        not change the class.
+
+    RandomRotation(15)
+        Rotates by up to 15 degrees. This gives robustness to small camera
+        angle differences.
+
+    ColorJitter
+        Changes brightness, contrast, and saturation. This reduces reliance
+        on one particular lighting or color condition.
+
+The transforms are applied on the fly. A new random version can be generated
+each time an image is requested, so augmentation increases variety without
+creating a permanently enlarged dataset.
+
+Validation and test transforms only resize, convert to tensor, and normalize.
+They do not use random augmentation, so evaluation is deterministic and
+measures the model on unmodified images.
+
+get_loaders()
+--------------
+
+get_loaders() creates:
+
+    train_loader
+        Shuffled training batches. Training augmentation can be enabled.
+
+    val_loader
+        Ordered validation batches. No random augmentation.
+
+    test_loader
+        Ordered test batches. No random augmentation.
+
+The train DataLoader uses a seeded torch.Generator for reproducible shuffling.
+The optional subset argument is used by the overfit test to restrict training
+to the first 32 training images.
+
+pin_memory can improve CPU-to-CUDA transfers. persistent_workers is enabled
+only when workers are used. NUM_WORKERS can be set to zero if worker errors
+occur.
+
+denormalize()
+--------------
+
+denormalize() reverses normalization for displaying tensors as normal images.
+Values are clipped to [0, 1] before plotting.
+
+
+4. CNN ARCHITECTURE: src/model.py
+==================================
+
+SmallCNN is a custom CNN. It is not pretrained and does not use external
+training data.
+
+Each convolutional block contains:
+
+    Conv2d -> optional BatchNorm2d -> ReLU -> MaxPool2d
+
+The default architecture has four blocks:
+
+    input: 3 x 128 x 128
+    block 1: 16 channels, then spatial size 64 x 64
+    block 2: 32 channels, then spatial size 32 x 32
+    block 3: 64 channels, then spatial size 16 x 16
+    block 4: 128 channels, then spatial size 8 x 8
+    global average pooling: 128 x 1 x 1
+    flatten: 128 values
+    linear layer: 2 logits
+
+The final selected search configuration used base=64, so its channels are:
+
+    64 -> 128 -> 256 -> 512
+
+and it has approximately 1.55 million trainable parameters.
+
+Convolution
+-----------
+
+A convolutional layer learns small filters, here 3 x 3 filters. Each filter
+slides over the image and computes local weighted sums. Early filters can
+learn edges, color transitions, and textures. Deeper filters combine earlier
+features into shapes and object parts.
+
+The convolution uses padding=1, so a 3 x 3 convolution preserves height and
+width before pooling.
+
+Channel depth increases in later blocks. More channels allow more feature
+types to be represented, while pooling reduces spatial resolution.
+
+Batch Normalization
+-------------------
+
+BatchNorm2d normalizes intermediate feature maps using batch statistics and
+learned scale and shift parameters. It can make optimization more stable and
+allow useful gradient flow. When batchnorm is enabled, convolution biases are
+disabled because the following normalization layer already has a learned
+offset.
+
+ReLU
+----
+
+ReLU is:
+
+    ReLU(x) = max(0, x)
+
+It supplies the nonlinearity needed for the network to learn complex
+functions. Without nonlinear activations, a stack of linear layers would
+still be equivalent to one linear transformation.
+
+Max pooling
+-----------
+
+MaxPool2d(2) takes the maximum value in each 2 x 2 region. It halves height
+and width and gives some translation tolerance. It also reduces computation
+as the network becomes deeper.
+
+Global average pooling
+----------------------
+
+AdaptiveAvgPool2d(1) averages each final feature map to one value. It reduces
+each channel to a single summary value and avoids a large fully connected
+layer. This makes the classifier more parameter-efficient than flattening
+the complete final spatial grid.
+
+Dropout
+-------
+
+Dropout randomly sets a fraction of classifier inputs to zero during training.
+This is a regularization technique intended to reduce co-adaptation and
+overfitting. Dropout is automatically disabled by model.eval() during
+validation and test. The selected final configuration used dropout=0.0 after
+the validation search, but the code supports it and several ablation runs
+tested it.
+
+Linear output and logits
+------------------------
+
+The final nn.Linear layer returns two raw values, one for cat and one for dog.
+These are called logits. The model does not apply softmax during training
+because CrossEntropyLoss internally combines log-softmax with negative
+log-likelihood in a numerically stable way.
+
+build_model(cfg)
+----------------
+
+build_model() creates SmallCNN using the configuration values. This makes
+architecture changes reproducible from the checkpoint configuration.
+
+load_model()
+------------
+
+load_model() loads a checkpoint, rebuilds the matching architecture from the
+stored configuration, loads the learned state dictionary, moves the model to
+the selected device, and switches it to evaluation mode.
+
+
+5. TRAINING: src/train.py
+=========================
+
+run_epoch()
+-----------
+
+run_epoch() performs one full pass through a DataLoader.
+
+In training mode:
+
+1. The model is put in training mode with model.train(True).
+2. A batch is moved to the selected device.
+3. The model computes logits.
+4. CrossEntropyLoss compares logits with integer labels.
+5. optimizer.zero_grad() clears old gradients.
+6. loss.backward() computes gradients through backpropagation.
+7. optimizer.step() updates the learnable parameters.
+
+In evaluation mode:
+
+    model.train(False)
+
+and gradient tracking is disabled. This is faster and avoids changing model
+parameters. BatchNorm and Dropout also behave differently in evaluation mode.
+
+Loss
+----
+
+The project uses torch.nn.CrossEntropyLoss for the two-class problem. For one
+example with true class y, the loss is:
+
+    -log(probability assigned to the true class)
+
+The batch loss is the average over the batch. High confidence in the correct
+class gives a small loss. High confidence in the wrong class gives a large
+loss. This is why cross-entropy is useful for discussing overconfident
+mistakes in the confidence histogram.
+
+The initial loss is expected to be close to:
+
+    ln(2) = approximately 0.693
+
+because a randomly initialized two-class model often starts near a 50/50
+prediction.
+
+Accuracy
+--------
+
+Predicted labels are obtained with:
+
+    output.argmax(1)
+
+Accuracy is the fraction of examples classified correctly. For the promoted
+model, training accuracy is measured with random augmentation active, while
+validation accuracy uses clean images and evaluation mode. It can therefore
+be lower than a clean training evaluation. The train/validation gap is not a
+clean apples-to-apples generalization gap and should be described carefully.
+
+Optimizers
+----------
+
+The code supports:
+
+    Adam
+        Adaptive first- and second-moment updates.
+
+    AdamW
+        Adam-style adaptive updates with decoupled weight decay. This was the
+        selected optimizer for the final model.
+
+    SGD with momentum=0.9
+        Classical gradient descent with momentum.
+
+The learning rate controls the size of each parameter update. A rate that is
+too large can make training unstable; one that is too small can make learning
+slow.
+
+Weight decay
+------------
+
+weight_decay penalizes large weights and is a form of L2-style regularization.
+Stage 1 compared no weight decay with 1e-4 and 1e-3. The 1e-4 result was only
+slightly higher than the no-decay result, so the original search provides no
+clear evidence that weight decay alone improved the baseline.
+
+Learning-rate scheduler
+-----------------------
+
+When enabled, ReduceLROnPlateau reduces the learning rate after validation
+loss has stopped improving. The original Stage 3 comparison did not select
+this option, but the later fair augmented retest enabled it and it is part
+of the promoted final configuration.
+
+Backpropagation and gradient descent
+------------------------------------
+
+The model output produces a loss. Backpropagation applies the chain rule to
+calculate the derivative of the loss with respect to every trainable weight.
+The optimizer then changes the weights in the direction that should reduce
+the loss:
+
+    parameter = parameter - learning_rate * gradient
+
+The exact update is modified by Adam, AdamW, or SGD momentum.
+
+Early stopping
+--------------
+
+After every epoch, validation loss is checked. If it improves, the current
+model state is saved as the best checkpoint. If it fails to improve for
+patience epochs, training stops. This prevents unnecessary training after
+the model begins to overfit and ensures that the checkpoint represents the
+best validation-loss epoch rather than the final epoch.
+
+Checkpointing
+-------------
+
+Each normal training run saves:
+
+    outputs/checkpoints/<name>.pth
+
+The checkpoint contains:
+
+    cfg
+        The hyperparameters needed to reconstruct the model.
+
+    state_dict
+        The learned tensors for all model parameters and buffers.
+
+Training history is written to:
+
+    outputs/history/<name>.csv
+
+The history contains epoch number, training loss, training accuracy,
+validation loss, and validation accuracy.
+
+Overfit sanity check
+--------------------
+
+The --overfit option disables augmentation, dropout, and weight decay and
+trains on only 32 images. A sufficiently expressive model should memorize
+this tiny dataset and approach 100 percent training accuracy. This is a code
+sanity check, not a measure of generalization quality.
+
+
+6. STAGED HYPERPARAMETER SEARCH: experiments/run_search.py
+===========================================================
+
+The search is staged so that the next experiments are based on the best
+validation-only configuration from the previous stage.
+
+Stage 1: regularization and augmentation
+----------------------------------------
+
+The stage compares:
+
+    baseline
+    augmentation
+    dropout=0.2
+    dropout=0.5
+    weight_decay=1e-4
+    weight_decay=1e-3
+    no BatchNorm
+
+This isolates the effect of common regularization choices.
+
+Stage 2: depth and width
+------------------------
+
+The stage compares three, four, and five blocks, and base widths 8, 32, and
+64. Depth means the number of convolutional blocks. Width means the number
+of channels in the first block; later blocks double that number.
+
+Stage 3: optimizer and training settings
+-----------------------------------------
+
+The stage compares:
+
+    learning rates 1e-2, 1e-3, and 1e-4
+    batch sizes 16 and 64
+    SGD
+    a validation-loss scheduler
+
+Stage 4: seed variability
+-------------------------
+
+The selected configuration is trained with seeds 42, 1, and 2. This shows
+how much the result depends on random initialization and batch order.
+
+Results and validation discipline
+---------------------------------
+
+Each completed run records:
+
+    name
+    number of parameters
+    best epoch
+    best validation loss
+    best validation accuracy
+    training accuracy at the best validation epoch
+    train-validation accuracy gap
+    all hyperparameter values
+
+The test set is intentionally not used during search. In this project it was
+evaluated once for the original checkpoint and once for the promoted
+checkpoint, after each configuration had been selected using validation
+results. The second test result was not used to decide promotion; this
+repeated evaluation should be disclosed as a limitation.
+
+The original staged search selected a 64-base, four-block CNN with AdamW,
+learning rate 1e-3, weight decay 1e-4, batch size 32, no dropout, and no
+augmentation. Its best seed achieved 79.4 percent validation accuracy.
+Because the original augmented run had a shorter training budget, a fair
+follow-up comparison retrained augmented and non-augmented versions for up
+to 100 epochs, with patience 20 and a validation-loss scheduler. The
+augmented version performed better and is now the promoted final model.
+
+The promoted final configuration keeps the same architecture and optimizer,
+but uses training augmentation, weight decay 1e-4, no dropout, scheduler
+enabled, a 100-epoch maximum, and patience 20. Its seed-42 validation
+accuracy was 81.7 percent, while the additional fair seeds achieved 83.1
+and 81.1 percent. Augmentation is therefore both implemented and selected
+for the current final checkpoint.
+
+
+7. FINAL EVALUATION: src/evaluate.py
+====================================
+
+predict()
+---------
+
+predict() switches the model to evaluation mode, computes logits without
+gradients, applies softmax to turn logits into class probabilities, and
+returns probabilities and labels in DataLoader order.
+
+Softmax for two logits z0 and z1 is:
+
+    p_i = exp(z_i) / (exp(z0) + exp(z1))
+
+The probabilities add to one and are used for confidence values.
+
+Test accuracy
+-------------
+
+The predicted class is the probability with the largest value. Accuracy is
+computed against the held-out test labels.
+
+Confusion matrix
+----------------
+
+The confusion matrix has true classes in rows and predicted classes in
+columns:
+
+    true cat, predicted cat
+    true cat, predicted dog
+    true dog, predicted cat
+    true dog, predicted dog
+
+This reveals whether one class is systematically harder.
+
+Precision, recall, and F1
+------------------------
+
+For one class:
+
+    precision = true positives / (true positives + false positives)
+    recall = true positives / (true positives + false negatives)
+    F1 = harmonic mean of precision and recall
+
+The code obtains these metrics from scikit-learn's classification_report.
+
+Misclassified images
+--------------------
+
+The wrong predictions are saved to:
+
+    outputs/misclassified_final.json
+
+Each entry includes the relative path, true class, predicted class, and
+predicted confidence. This makes it possible to inspect difficult cases and
+discuss backgrounds, unusual poses, image quality, or other biases.
+
+
+8. VISUALIZATION: src/visualize.py
+===================================
+
+Training curves
+---------------
+
+plot_curves() reads training history CSV files and plots training and
+validation loss and accuracy. A gap between training and validation curves
+can indicate overfitting, underfitting, or a difference between augmented
+training data and clean validation data.
+
+First-layer filters
+-------------------
+
+plot_filters() displays the learned weights of the first convolution. These
+filters can show color and edge detectors, but they do not necessarily give
+as direct an explanation as Grad-CAM.
+
+Feature maps
+------------
+
+plot_feature_maps() registers forward hooks on ReLU layers. The hooks capture
+intermediate activations for one test image. The plotted feature maps show
+which patterns activate at different network depths.
+
+Grad-CAM
+--------
+
+plot_gradcam() uses Gradient-weighted Class Activation Mapping. It:
+
+1. Runs one image through the model.
+2. Selects the predicted-minus-other class logit difference.
+3. Backpropagates that two-class score to the final convolutional layer.
+4. Uses the average gradient in each channel as an importance weight.
+5. Forms a weighted sum of activation maps.
+6. Applies ReLU and normalizes the result. If the positive map is empty, the
+   implementation reports it and uses the magnitude of the signed map so a
+   panel is not silently rendered without an overlay.
+7. Overlays the heatmap on the original image.
+
+Grad-CAM is useful because it gives a spatial indication of which regions
+supported the prediction. Correct and incorrect examples can reveal whether
+the model focuses on the animal or on shortcuts such as background, people,
+leashes, furniture, or image borders. The final convolutional map is coarse
+(16 by 16), so interpretations are hypotheses rather than proof. In the
+regenerated six-panel figure, three panels required the magnitude fallback;
+those panels should not be interpreted as strictly class-specific evidence.
+
+The implementation produces three correct and three misclassified examples.
+Some heatmaps can emphasize people, furniture, or image borders rather than
+the animal. These are useful qualitative clues about shortcut learning, not
+proof of what the network learned.
+
+Ablation chart
+--------------
+
+plot_ablation_results() reads results.csv and creates:
+
+1. A bar chart of best validation accuracy for every run.
+2. A bar chart of the training accuracy minus validation accuracy gap.
+
+The results are colored by search stage. The shaded seed band uses the three
+fair augmented runs and has sample standard deviation approximately 0.010.
+The training-accuracy gap is descriptive only because augmented training
+images and clean validation images are not measured under identical
+conditions.
+
+Accuracy versus parameter count
+-------------------------------
+
+plot_accuracy_vs_parameters() plots the fair augmented width-8, width-16,
+and width-64 runs against trainable parameter count. The x-axis is
+logarithmic. This is the parsimony figure for discussing the
+performance/complexity trade-off.
+
+Seed variability
+----------------
+
+plot_seed_variability() plots the three promoted fair augmented validation
+accuracies and shows their mean and sample standard deviation. A spread
+between seeds means that a single run should not be treated as perfectly
+reliable. If the fair rows are unavailable, it falls back to the original
+final seed rows.
+
+Confidence histogram
+--------------------
+
+plot_confidence() compares the predicted-confidence distributions for correct
+and incorrect test predictions. Incorrect predictions with very high
+confidence are evidence of overconfidence, which is directly related to the
+cross-entropy objective. The histogram is mostly well behaved, but a handful
+of errors are highly confident, including examples of kittens on shoulders,
+a black kitten on a blue blanket, and a cat in a lap. Errors also cluster
+around dark animals, animals held by people, and cages.
+
+Correct and misclassified examples
+-----------------------------------
+
+plot_correct_examples() creates a grid of correctly classified examples.
+Together with misclassified.png, it provides a useful visual contrast.
+
+Architecture diagram
+---------------------
+
+plot_architecture() creates a simple diagram:
+
+    input -> conv/BN/ReLU/pool x 4 -> global average pooling -> linear
+
+It also lists the feature-map channel progression for the selected final
+architecture.
+
+Personal pet images
+-------------------
+
+plot_own_pets() applies the evaluation transform to every supported image in
+my_pets/, runs inference, and displays the predicted class and confidence.
+These images are a qualitative demonstration and are not part of the
+scientific test accuracy.
+
+
+9. DEEP-LEARNING CONCEPTS USED
+==============================
+
+Supervised learning
+-------------------
+
+Every training image has a label: cat or dog. The model learns a mapping from
+pixel tensors to labels by minimizing a loss on labeled examples.
+
+Binary classification with two logits
+-------------------------------------
+
+Although there are only two classes, the model outputs two logits. The
+largest logit determines the predicted class. CrossEntropyLoss handles the
+two-class decision directly. The model does not use a sigmoid or softmax in
+its final layer during training: CrossEntropyLoss receives raw logits and
+performs the required log-softmax calculation internally. Softmax is used
+only afterward for readable probabilities and confidence values.
+
+Representation learning
+-----------------------
+
+The convolutional layers learn visual representations automatically. Early
+layers learn simple features such as edges and colors. Deeper layers combine
+these into textures, parts, and class-relevant patterns.
+
+Parameters and learnable weights
+--------------------------------
+
+Convolution kernels, BatchNorm scale/shift values, and linear-layer weights
+are trainable parameters. Training changes these parameters to reduce
+cross-entropy loss. count_parameters() reports the number of trainable
+parameters for model-complexity comparisons.
+
+Forward pass
+------------
+
+The forward pass maps an input tensor through convolution, normalization,
+activation, pooling, global averaging, dropout, and the final linear layer.
+The output is a two-value tensor per image.
+
+Backpropagation
+---------------
+
+The backward pass computes gradients of the loss with respect to all
+parameters. PyTorch autograd builds the computation graph during the forward
+pass and uses the chain rule during loss.backward().
+
+This is backward-mode automatic differentiation: the loss is a scalar
+output, while the network has many parameters. One reverse pass therefore
+provides gradients for all weights efficiently. Gradients from different
+paths through operations such as additions and convolutions are accumulated
+according to the chain rule.
+
+Mini-batch training
+-------------------
+
+The DataLoader divides the training set into batches. The model estimates a
+gradient from each batch, and the optimizer updates the parameters after
+each batch. This is more efficient than processing the entire dataset at
+once and gives useful stochasticity. The batch gradient is an estimate of the
+full-dataset gradient; its noise is why the method is commonly described as
+stochastic or mini-batch gradient descent.
+
+Non-convex optimization
+-----------------------
+
+The neural-network loss is non-convex because it contains many parameters and
+nonlinear operations. Training is not guaranteed to find a global minimum.
+Initialization, batch order, augmentation, optimizer, and learning rate can
+lead to different optimization paths. The three-seed experiments measure
+some of this variability rather than proving that one seed is universally
+best.
+
+Learning-rate and optimizer behavior
+-------------------------------------
+
+The learning rate controls the size of parameter updates. AdamW adapts the
+update using gradient moments and applies decoupled weight decay; SGD with
+momentum uses a velocity-like running update. Stage 3 compares these choices,
+and the fair final retest uses AdamW with ReduceLROnPlateau to lower the
+learning rate when validation loss stops improving.
+
+Generalization
+--------------
+
+The goal is not merely to memorize training images. Validation and test
+performance measure how well the learned representation transfers to unseen
+images from the same task.
+
+Overfitting and underfitting
+----------------------------
+
+Overfitting occurs when training performance is high but validation
+performance is much worse. Underfitting occurs when both are poor. The
+project studies regularization, model size, augmentation, and early stopping
+to manage this trade-off.
+
+Data augmentation
+-----------------
+
+Augmentation creates realistic variation in training inputs. It acts as a
+prior that cats and dogs should remain the same class under small changes in
+position, angle, lighting, and framing.
+
+Regularization
+--------------
+
+This project includes augmentation, dropout, weight decay, BatchNorm, and
+early stopping as possible regularization or stabilization mechanisms. The
+search measures their effect rather than assuming every technique helps.
+
+Validation-based model selection
+--------------------------------
+
+The validation set is used for early stopping and hyperparameter selection.
+The test set is kept separate until the final evaluation. This is essential
+for obtaining an honest estimate of generalization.
+
+Random seeds and reproducibility
+--------------------------------
+
+The project seeds Python's random module, NumPy, PyTorch, and CUDA. This
+reduces but does not always completely eliminate hardware-dependent
+nondeterminism. Training the final model with three seeds quantifies some of
+the remaining variability.
+
+GPU acceleration
+----------------
+
+The model and batches are moved to CUDA, MPS, or CPU. GPU and accelerator
+devices perform tensor operations in parallel and can reduce training time.
+The mathematical model and training procedure remain the same across
+devices.
+
+Model interpretation
+--------------------
+
+Feature maps show intermediate activations. In this implementation they are
+captured after each block's ReLU and before that block's MaxPool2d, so their
+reported spatial sizes differ from the post-pooling sizes in the architecture
+diagram. The original input image is shown beside the feature maps for
+reference. Grad-CAM connects the
+final class decision back to spatial regions of an image. Interpretation
+plots do not prove causal reasoning, but they can expose suspicious shortcuts
+and provide evidence for a discussion of model behavior.
+
+Grad-CAM is another use of backward differentiation: gradients of the
+predicted-minus-other logit score are propagated to the final convolutional
+feature map. The channel-wise average gradients weight the activation maps.
+Because the map is only 16 by 16 before upsampling, it should be interpreted
+as a coarse localization, not pixel-level evidence.
+
+
+10. CURRENT RESULT SUMMARY
+==========================
+
+The available dataset contains 2,400 images rather than the 2,600 described
+in the assignment handout.
+
+The promoted final model has approximately 1.55 million trainable
+parameters and uses the fair long-budget augmented configuration:
+
+    base=64, n_blocks=4, BatchNorm=True
+    augmentation=True, dropout=0.0
+    optimizer=AdamW, learning rate=0.001
+    weight decay=0.0001, batch size=32
+    scheduler=True, epochs=100, patience=20
+
+Fair validation results were:
+
+    fair_aug     seed 42: 81.7 percent, validation loss 0.435
+    fair_aug_s1  seed 1:  83.1 percent, validation loss 0.423
+    fair_aug_s2  seed 2:  81.1 percent, validation loss 0.492
+
+The selected seed-42 final checkpoint achieved on the held-out test set:
+
+    test accuracy: 83.06 percent
+    test images: 360
+    misclassified images: 61
+
+The confusion matrix was:
+
+    [[153, 27],
+     [ 34,146]]
+
+The original staged-search final remains available as
+outputs/checkpoints/original_final.pth. It achieved 79.44 percent
+validation accuracy and 78.33 percent test accuracy. Keeping it as a backup
+makes the effect of the fair retest explicit and reproducible.
+
+The augmentation comparison is still suggestive rather than conclusive, but
+it now uses three seeds per setting. The no-augmentation runs averaged about
+78.1 percent validation accuracy (79.8, 77.5, and 76.9 percent), while the
+augmented runs averaged about 81.9 percent (81.7, 83.1, and 81.1 percent).
+The seed variation means this should not be described as a definitive causal
+effect, but the higher accuracy and lower validation loss support the
+interpretation that augmentation helped validation performance. For seed 42
+specifically, the curves also show that augmentation prevented the clear
+memorization pattern seen without augmentation; the best-epoch gap bars do
+not prove a general gap reduction across seeds.
+The held-out test set was evaluated for the original checkpoint and again
+for the promoted checkpoint. Promotion was decided using validation results,
+not the second test result. The approximate 95 percent binomial interval for
+the promoted 83.1 percent test accuracy is 79-87 percent.
+
+The smaller-model follow-up used the same fair augmented recipe with base
+widths 8 and 16. The 8-base model has only 24,778 trainable parameters and
+reached 77.8 percent validation accuracy; the 16-base model has 97,938
+parameters and reached 79.4 percent. This supports the choice of the
+64-base model for accuracy, while also showing that a much smaller model
+can achieve a useful result at substantially lower complexity.
+
+Training accuracy is measured with the configured training behavior, which
+can include augmentation and dropout. It should therefore not be compared
+to validation accuracy as if both were measured on exactly identical inputs
+and model modes.
+
+
+11. TESTS AND WHY THEY MATTER
+=============================
+
+test_splits_do_not_overlap
+    Confirms that no image path appears in more than one data split. This
+    prevents leakage from training into validation or test data.
+
+test_class_balance_is_preserved
+    Confirms that each split has equal numbers of cats and dogs for the
+    current dataset. This makes accuracy easier to interpret and avoids an
+    accidental class-ratio shift.
+
+test_loader_batches_have_expected_shape
+    Confirms that batches have shape:
+
+        batch x 3 x 128 x 128
+
+    and that labels have shape batch. This catches transform and DataLoader
+    mistakes before training.
+
+test_model_forward_pass
+    Confirms that a batch of images produces:
+
+        batch x 2
+
+    raw class logits. This catches architecture and dimension errors.
+
+
+12. REPORT GUIDANCE
+===================
+
+The code is only one part of the assignment. The report should explain why
+the split, augmentation, CNN architecture, loss, optimizer, and search
+strategy were selected. It should include:
+
+    - The actual dataset size and the 2,400-versus-2,600 discrepancy.
+    - The 70/15/15 stratified split.
+    - The training-only normalization and augmentation policy.
+    - The architecture and parameter count.
+    - The staged validation-only search.
+    - Validation and test results.
+    - The train-validation gap and its interpretation.
+    - Confusion matrix and per-class metrics.
+    - Grad-CAM examples, including at least one error.
+    - Confidence histogram and any high-confidence mistakes.
+    - Parameter-count versus accuracy discussion.
+    - Seed variability discussion.
+    - Limitations and possible improvements.
+    - Contributions from each group member.
+
+The test set should be described as held out until final evaluation. The
+personal pet results should be presented as a qualitative demonstration, not
+as an additional test-set score.
