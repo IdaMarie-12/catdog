@@ -3,7 +3,8 @@ import csv
 import config
 from train import train
 
-# Edit this after stage 1 (and again after stages 2 and 3) using VALIDATION results
+# Original short-budget search configuration. The fair stage 5 is the
+# reproducible source of the promoted final configuration.
 BEST = dict(
     base=64,
     n_blocks=4,
@@ -48,6 +49,19 @@ STAGES = {
         "_s1": dict(seed=1),
         "_s2": dict(seed=2),
     }),
+    5: ("fair", dict(base=64, n_blocks=4, augment=True, dropout=0.0,
+                     batchnorm=True, weight_decay=1e-4, optimizer="adamw",
+                     lr=1e-3, batch_size=32, epochs=100, patience=20,
+                     scheduler=True), {
+        "_aug": dict(seed=42),
+        "_aug_s1": dict(seed=1),
+        "_aug_s2": dict(seed=2),
+        "_noaug": dict(augment=False, seed=42),
+        "_noaug_s1": dict(augment=False, seed=1),
+        "_noaug_s2": dict(augment=False, seed=2),
+        "_aug_width8": dict(base=8, seed=42),
+        "_aug_width16": dict(base=16, seed=42),
+    }),
 }
 
 FIELDS = ["name", "params", "best_epoch", "best_val_loss", "best_val_acc",
@@ -78,6 +92,8 @@ if __name__ == "__main__":
     prefix, base, experiments = STAGES[stage]
     for exp, override in experiments.items():
         name = f"{prefix}_{exp}" if stage != 4 else f"{prefix}{exp}"
+        if stage == 5:
+            name = f"fair{exp}"
         if name in done_names():
             print("skip", name)
             continue

@@ -13,9 +13,15 @@ your own photos in `my_pets/`.
     python3 experiments/run_search.py --stage 1  # 6. experiments (edit BEST in run_search.py between stages)
     python3 experiments/run_search.py --stage 2
     python3 experiments/run_search.py --stage 3
-    python3 experiments/run_search.py --stage 4  # final config, 3 seeds -> checkpoint "final"
-    python3 src/evaluate.py --name final      # 7. test set, once
+    python3 experiments/run_search.py --stage 4  # original short-budget seeds
+    python3 experiments/run_search.py --stage 5  # fair augmented/no-augmented retest
+    python3 src/evaluate.py --name final       # selected augmented checkpoint
     python3 src/visualize.py --name final
+
+The submitted final rule is: select the augmented checkpoint with the lowest
+validation loss among fair_aug, fair_aug_s1, and fair_aug_s2. This selects
+fair_aug_s1, which is copied to final.pth. The original final checkpoints
+remain available for comparison.
 
 Run the tests with:
 

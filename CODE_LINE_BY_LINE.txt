@@ -644,6 +644,11 @@ The completed results show that:
         and 75.0 percent. This is why reporting only one run would hide
         training variability.
 
+    Stage 5:
+        Reproduces the fair long-budget comparison: three augmented seeds,
+        three non-augmented seeds, and augmented width-8 and width-16 runs.
+        All use the same 100-epoch maximum, patience 20, and scheduler.
+
     Fair retest:
         The original augmented run had a shorter training budget, so
         augmentation and no augmentation were retrained for up to 100 epochs
@@ -748,8 +753,9 @@ Lines 160-173: plot_correct_examples()
     showing predicted class and confidence.
 
 Lines 176-189: plot_architecture()
-    Draws the final model as a sequence of labeled boxes: input, four
-    convolutional blocks, global average pooling, and two-logit output.
+    Reads the loaded checkpoint configuration and draws the model as a
+    sequence of labeled boxes: input, the configured convolutional blocks,
+    global average pooling, and two-logit output.
     The boxes are spaced so the arrows run between, rather than through, the
     box text.
 
@@ -838,9 +844,9 @@ Lines 55-58: test_model_forward_pass()
 =========================================
 
 The search uses validation loss and validation accuracy, not test accuracy,
-to choose BEST. The test set was evaluated after the original search and
-again after the fair retest; neither test result was used to choose the
-promoted configuration.
+to choose BEST. The test set was evaluated for the original checkpoint and
+the three fair augmented checkpoints; none of those test results was used
+to choose the promoted configuration.
 
 The original staged search selected:
 
@@ -857,37 +863,41 @@ The fair retest used the same architecture but a matched longer budget:
 
     augment=True, scheduler=True, epochs=100, patience=20
 
-The promoted current final checkpoints are fair_aug, fair_aug_s1, and
-fair_aug_s2, copied to final, final_s1, and final_s2 respectively. Their
+The promoted candidate checkpoints are fair_aug, fair_aug_s1, and
+fair_aug_s2. The predeclared selection rule chooses fair_aug_s1 because it
+has the lowest validation loss; it is copied to final.pth for submission.
+Their
 validation results were:
 
     final     seed 42: 81.67 percent, validation loss 0.435
     final_s1  seed 1:  83.06 percent, validation loss 0.423
     final_s2  seed 2:  81.11 percent, validation loss 0.492
 
-The promoted seed-42 final test evaluation was:
+The selected fair_aug_s1 test evaluation was:
 
-    test accuracy: 83.06 percent
+    test accuracy: 81.39 percent
     test images: 360
-    misclassified images: 61
+    misclassified images: 67
 
 Confusion matrix, with true classes as rows and predictions as columns:
 
-    cat true: 153 cat predictions, 27 dog predictions
-    dog true:  34 cat predictions, 146 dog predictions
+    cat true: 160 cat predictions, 20 dog predictions
+    dog true:  47 cat predictions, 133 dog predictions
 
 The fair retest is reported separately because the original augmented run
 received a shorter training budget. The promoted model is selected using
-validation results; the test set is reported only for the selected seed-42
-checkpoint.
+validation results. The three fair augmented test accuracies were 83.06,
+81.39, and 80.00 percent (mean 81.48 percent, sample standard deviation
+1.53 percentage points). The original test result was 78.33 percent.
 
 The fair augmentation result is still suggestive rather than definitive, but
 it now uses three seeds per setting. The no-augmentation runs averaged about
 78.1 percent validation accuracy (79.8, 77.5, and 76.9 percent), versus
 about 81.9 percent for the augmented runs. The test set was evaluated twice
-(78.3 percent for the original checkpoint and 83.1 percent for the promoted
-checkpoint), but promotion was based on validation results. The approximate
-95 percent interval for the promoted test accuracy is 79-87 percent.
+(78.3 percent for the original checkpoint and the three fair augmented
+results above), but promotion was based on validation results. The
+approximate 95 percent interval for the selected test accuracy is 77-85
+percent.
 
 The fair model-size follow-up tested base widths 8 and 16. They reached
 77.8 percent with 24,778 parameters and 79.4 percent with 97,938 parameters,
@@ -913,6 +923,14 @@ memorization pattern seen without augmentation; the best-epoch gap bars do
 not prove a general gap reduction across seeds. The promoted current final model therefore uses
 augmentation=True and dropout=0.0. The original no-augmentation checkpoints
 remain available for comparison.
+
+The selected fair_aug_s1 checkpoint is copied to final.pth. The previous
+promoted seed-42 checkpoint is retained as
+outputs/checkpoints/previous_promoted_final_fair_aug.pth.
+
+The overfit sanity check reached 100 percent training accuracy by epoch 16
+on the 32-image subset. This confirms memorization capacity and basic
+training-loop correctness, not generalization.
 
 The available dataset contains 2,400 images rather than the 2,600 mentioned
 in the assignment handout. This should be reported and the original zip

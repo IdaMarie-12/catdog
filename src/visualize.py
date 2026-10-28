@@ -226,12 +226,13 @@ def plot_correct_examples(model, device, out, max_n=8):
     save_figure(fig, out)
 
 
-def plot_architecture(out):
-    labels = ["Input\n3@128×128", "Conv 64\nBN → ReLU → Pool\n64@64×64",
-              "Conv 128\nBN → ReLU → Pool\n128@32×32",
-              "Conv 256\nBN → ReLU → Pool\n256@16×16",
-              "Conv 512\nBN → ReLU → Pool\n512@8×8",
-              "Global average\npooling\n512@1×1", "Linear\n2 logits"]
+def plot_architecture(out, cfg):
+    channels = [cfg["base"] * 2 ** i for i in range(cfg["n_blocks"])]
+    sizes = [config.IMG_SIZE // 2 ** (i + 1) for i in range(cfg["n_blocks"])]
+    labels = [f"Input\n3@{config.IMG_SIZE}×{config.IMG_SIZE}"]
+    for channel, size in zip(channels, sizes):
+        labels.append(f"Conv {channel}\nBN → ReLU → Pool\n{channel}@{size}×{size}")
+    labels += [f"Global average\npooling\n{channels[-1]}@1×1", "Linear\n2 logits"]
     fig, ax = plt.subplots(figsize=(13, 2.7))
     ax.axis("off")
     for i, label in enumerate(labels):
@@ -371,7 +372,7 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     device = get_device()
-    model, _ = load_model(config.CKPT_DIR / f"{args.name}.pth", device)
+    model, model_cfg = load_model(config.CKPT_DIR / f"{args.name}.pth", device)
     fig = config.FIG_DIR
 
     plot_curves(args.compare, fig / "curves.png")
@@ -387,5 +388,5 @@ if __name__ == "__main__":
     probs, labels, _ = _test_predictions(model, device)
     plot_confidence(fig / "confidence_histogram.png", probs, labels)
     plot_correct_examples(model, device, fig / "correct_examples.png")
-    plot_architecture(fig / "architecture.png")
+    plot_architecture(fig / "architecture.png", model_cfg)
     print("figures saved to", fig)

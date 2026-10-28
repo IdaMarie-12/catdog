@@ -10,7 +10,7 @@ HIST_DIR = OUT_DIR / "history"
 FIG_DIR = OUT_DIR / "figures"
 SPLIT_FILE = ROOT / "split.json"
 STATS_FILE = ROOT / "stats.json"              # mean/std of the training set
-RESULTS_FILE = ROOT / "results.csv"           # one row per experiment
+RESULTS_FILE = ROOT / "experiments" / "results.csv"  # one row per experiment
 
 CLASS_FOLDERS = {"cats": 0, "dogs": 1}
 CLASSES = ["cat", "dog"]

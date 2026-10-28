@@ -121,6 +121,10 @@ Run the 32-image overfit sanity check:
 
     python3 src/train.py --overfit
 
+The recorded overfit run reached 100 percent training accuracy by epoch 16,
+confirming that the model and training loop can memorize the 32-image
+sanity-check subset.
+
 Run the baseline:
 
     python3 src/train.py --name baseline --baseline
@@ -131,12 +135,15 @@ Run the staged search:
     python3 experiments/run_search.py --stage 2
     python3 experiments/run_search.py --stage 3
     python3 experiments/run_search.py --stage 4
+    python3 experiments/run_search.py --stage 5
 
-The BEST dictionary in experiments/run_search.py is intentionally edited
-between stages using validation results. The test set must not be used to
-choose the best configuration.
+The original BEST dictionary drives stages 1-4. Stage 5 reproduces the fair
+long-budget retest and its augmented/no-augmentation and width runs. The
+submitted checkpoint is selected by the predeclared rule of lowest validation
+loss among fair_aug, fair_aug_s1, and fair_aug_s2, which selects fair_aug_s1.
+The test set must not be used to choose the checkpoint.
 
-Evaluate the final checkpoint once:
+Evaluate the selected fair augmented checkpoint once:
 
     python3 src/evaluate.py --name final
 
@@ -666,11 +673,19 @@ The stage compares:
     SGD
     a validation-loss scheduler
 
-Stage 4: seed variability
+Stage 4: original seed variability
 -------------------------
 
 The selected configuration is trained with seeds 42, 1, and 2. This shows
 how much the result depends on random initialization and batch order.
+
+Stage 5: fair long-budget retest
+--------------------------------
+
+Stage 5 reproduces the submitted comparison. It trains three augmented
+seeds and three non-augmented seeds with the same 100-epoch maximum, patience
+20, and validation-loss scheduler. It also trains fair augmented width-8 and
+width-16 models for the parameter/accuracy comparison.
 
 Results and validation discipline
 ---------------------------------
@@ -687,10 +702,10 @@ Each completed run records:
     all hyperparameter values
 
 The test set is intentionally not used during search. In this project it was
-evaluated once for the original checkpoint and once for the promoted
-checkpoint, after each configuration had been selected using validation
-results. The second test result was not used to decide promotion; this
-repeated evaluation should be disclosed as a limitation.
+evaluated for the original checkpoint and for the three fair augmented
+checkpoints after their validation results had been recorded. Test results
+were not used to decide promotion; this repeated evaluation should be
+disclosed as a limitation.
 
 The original staged search selected a 64-base, four-block CNN with AdamW,
 learning rate 1e-3, weight decay 1e-4, batch size 32, no dropout, and no
@@ -870,12 +885,15 @@ Together with misclassified.png, it provides a useful visual contrast.
 Architecture diagram
 ---------------------
 
-plot_architecture() creates a simple diagram:
+plot_architecture() creates a diagram from the loaded checkpoint configuration:
 
     input -> conv/BN/ReLU/pool x 4 -> global average pooling -> linear
 
 It also lists the feature-map channel progression for the selected final
 architecture.
+
+The channel widths and spatial sizes are therefore not hardcoded to 64; the
+figure changes if a different checkpoint architecture is visualized.
 
 Personal pet images
 -------------------
@@ -1061,16 +1079,26 @@ Fair validation results were:
     fair_aug_s1  seed 1:  83.1 percent, validation loss 0.423
     fair_aug_s2  seed 2:  81.1 percent, validation loss 0.492
 
-The selected seed-42 final checkpoint achieved on the held-out test set:
+The selected fair_aug_s1 checkpoint achieved on the held-out test set:
 
-    test accuracy: 83.06 percent
+    test accuracy: 81.39 percent
     test images: 360
-    misclassified images: 61
+    misclassified images: 67
 
-The confusion matrix was:
+Its confusion matrix was:
 
-    [[153, 27],
-     [ 34,146]]
+    [[160, 20],
+     [ 47,133]]
+
+The three fair augmented test accuracies were 83.06, 81.39, and 80.00
+percent, with mean 81.48 percent and sample standard deviation 1.53
+percentage points. These are reported as a descriptive seed summary; the
+selected checkpoint is fair_aug_s1 because it had the lowest validation loss.
+
+The selected checkpoint is copied to outputs/checkpoints/final.pth, so the
+standard evaluation and visualization commands use the validation-selected
+augmented model. The previous promoted seed-42 checkpoint is retained as
+outputs/checkpoints/previous_promoted_final_fair_aug.pth.
 
 The original staged-search final remains available as
 outputs/checkpoints/original_final.pth. It achieved 79.44 percent
@@ -1087,10 +1115,10 @@ interpretation that augmentation helped validation performance. For seed 42
 specifically, the curves also show that augmentation prevented the clear
 memorization pattern seen without augmentation; the best-epoch gap bars do
 not prove a general gap reduction across seeds.
-The held-out test set was evaluated for the original checkpoint and again
-for the promoted checkpoint. Promotion was decided using validation results,
-not the second test result. The approximate 95 percent binomial interval for
-the promoted 83.1 percent test accuracy is 79-87 percent.
+The held-out test set was evaluated for the original checkpoint and for the
+three fair augmented seeds. Promotion was decided using validation results,
+not test results. The approximate 95 percent binomial interval for the
+selected 81.4 percent test accuracy is 77-85 percent.
 
 The smaller-model follow-up used the same fair augmented recipe with base
 widths 8 and 16. The 8-base model has only 24,778 trainable parameters and
