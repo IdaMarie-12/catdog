@@ -15,7 +15,7 @@ class SmallCNN(nn.Module):
             layers.append(nn.Conv2d(in_ch, out_ch, 3, padding=1, bias=not batchnorm))
             if batchnorm:
                 layers.append(nn.BatchNorm2d(out_ch))
-            layers += [nn.ReLU(inplace=True), nn.MaxPool2d(2)]
+            layers += [nn.ReLU(inplace=False), nn.MaxPool2d(2)]
             in_ch = out_ch
         self.features = nn.Sequential(*layers)
         self.pool = nn.AdaptiveAvgPool2d(1)

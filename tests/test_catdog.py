@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 import config
-from dataset import get_loaders
+from dataset import get_loaders, load_split
 from model import build_model
 from split import collect_items, make_split
 
@@ -31,6 +31,9 @@ class CatDogTests(unittest.TestCase):
         self.assertEqual(set(), paths[0] & paths[2])
         self.assertEqual(set(), paths[1] & paths[2])
         self.assertEqual(sum(map(len, paths)), len(set.union(*paths)))
+
+    def test_saved_split_matches_recomputed_split(self):
+        self.assertEqual(load_split(), self.split)
 
     def test_class_balance_is_preserved(self):
         for name, expected_size in (("train", 1680), ("val", 360), ("test", 360)):

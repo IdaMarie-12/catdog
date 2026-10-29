@@ -3,402 +3,390 @@
     "path": "dogs/dog.451.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.8242608308792114
+    "confidence": 0.8468535542488098
   },
   {
     "path": "dogs/dog.614.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.6122092604637146
-  },
-  {
-    "path": "dogs/dog.26.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.7590994834899902
+    "confidence": 0.787282407283783
   },
   {
     "path": "dogs/dog.164.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.5270943641662598
+    "confidence": 0.610268235206604
+  },
+  {
+    "path": "cats/cat.780.jpg",
+    "true": "cat",
+    "pred": "dog",
+    "confidence": 0.529140830039978
   },
   {
     "path": "dogs/dog.756.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.8491351008415222
+    "confidence": 0.520113468170166
   },
   {
-    "path": "dogs/dog.10.jpg",
+    "path": "dogs/dog.1486.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.6376143097877502
+    "confidence": 0.5784921646118164
   },
   {
-    "path": "dogs/dog.435.jpg",
+    "path": "dogs/dog.679.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7182459831237793
+    "confidence": 0.5629462003707886
   },
   {
     "path": "cats/cat.742.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.8219519853591919
+    "confidence": 0.932273805141449
   },
   {
     "path": "dogs/dog.657.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.9444307684898376
+    "confidence": 0.9479182362556458
   },
   {
     "path": "dogs/dog.316.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7933389544487
-  },
-  {
-    "path": "dogs/dog.805.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.5674052834510803
+    "confidence": 0.7538992166519165
   },
   {
     "path": "dogs/dog.941.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.6580560803413391
+    "confidence": 0.6283360123634338
   },
   {
     "path": "cats/cat.1377.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.9939504861831665
+    "confidence": 0.9930142760276794
   },
   {
     "path": "dogs/dog.489.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.8159791231155396
+    "confidence": 0.559367299079895
   },
   {
     "path": "cats/cat.1498.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.8522555232048035
+    "confidence": 0.9155700206756592
   },
   {
     "path": "dogs/dog.27.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.5763549208641052
+    "confidence": 0.7190406918525696
   },
   {
     "path": "dogs/dog.361.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.8832338452339172
+    "confidence": 0.9442614316940308
   },
   {
     "path": "dogs/dog.152.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.8048493266105652
+    "confidence": 0.740359365940094
   },
   {
     "path": "cats/cat.809.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.8663867115974426
+    "confidence": 0.8146143555641174
   },
   {
     "path": "cats/cat.459.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.6813388466835022
+    "confidence": 0.9287786483764648
   },
   {
     "path": "dogs/dog.19.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.6185498237609863
+    "confidence": 0.8329585194587708
+  },
+  {
+    "path": "cats/cat.264.jpg",
+    "true": "cat",
+    "pred": "dog",
+    "confidence": 0.5327051877975464
   },
   {
     "path": "dogs/dog.28.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7492526769638062
+    "confidence": 0.8129963874816895
   },
   {
-    "path": "dogs/dog.1493.jpg",
+    "path": "dogs/dog.612.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.5610259175300598
+    "confidence": 0.5863630175590515
   },
   {
     "path": "dogs/dog.1482.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7296697497367859
+    "confidence": 0.6172477006912231
   },
   {
-    "path": "dogs/dog.714.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.6648575663566589
+    "path": "cats/cat.121.jpg",
+    "true": "cat",
+    "pred": "dog",
+    "confidence": 0.6477168202400208
   },
   {
     "path": "dogs/dog.694.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7337707281112671
+    "confidence": 0.6907027959823608
   },
   {
     "path": "cats/cat.276.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.8079519271850586
+    "confidence": 0.7614033818244934
   },
   {
     "path": "cats/cat.775.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.7656066417694092
+    "confidence": 0.7081791162490845
   },
   {
     "path": "dogs/dog.718.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.9527084231376648
+    "confidence": 0.9694045782089233
   },
   {
-    "path": "dogs/dog.337.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.6762300729751587
+    "path": "cats/cat.973.jpg",
+    "true": "cat",
+    "pred": "dog",
+    "confidence": 0.6222538352012634
   },
   {
     "path": "dogs/dog.471.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.8699396848678589
-  },
-  {
-    "path": "dogs/dog.484.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.6745819449424744
+    "confidence": 0.5107142925262451
   },
   {
     "path": "dogs/dog.324.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7437068819999695
+    "confidence": 0.8391948938369751
   },
   {
     "path": "cats/cat.177.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.6964122653007507
+    "confidence": 0.6907215714454651
+  },
+  {
+    "path": "dogs/dog.181.jpg",
+    "true": "dog",
+    "pred": "cat",
+    "confidence": 0.7407159209251404
   },
   {
     "path": "cats/cat.709.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.6232602596282959
+    "confidence": 0.7392245531082153
   },
   {
     "path": "cats/cat.1445.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.539988100528717
+    "confidence": 0.5689343810081482
   },
   {
     "path": "cats/cat.985.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.8728503584861755
+    "confidence": 0.9453807473182678
   },
   {
     "path": "dogs/dog.443.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.9303098917007446
+    "confidence": 0.9732562899589539
   },
   {
     "path": "cats/cat.1438.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.934464693069458
+    "confidence": 0.9843931794166565
   },
   {
     "path": "cats/cat.5.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.6189333200454712
-  },
-  {
-    "path": "dogs/dog.935.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.5248820185661316
-  },
-  {
-    "path": "cats/cat.882.jpg",
-    "true": "cat",
-    "pred": "dog",
-    "confidence": 0.782358705997467
+    "confidence": 0.9344132542610168
   },
   {
     "path": "dogs/dog.947.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7744488716125488
+    "confidence": 0.85282963514328
   },
   {
-    "path": "dogs/dog.764.jpg",
+    "path": "dogs/dog.800.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.6336508393287659
-  },
-  {
-    "path": "dogs/dog.717.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.608170747756958
+    "confidence": 0.5908192992210388
   },
   {
     "path": "dogs/dog.1405.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.508647620677948
+    "confidence": 0.6400023102760315
   },
   {
-    "path": "dogs/dog.479.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.59388667345047
-  },
-  {
-    "path": "dogs/dog.203.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.6595548391342163
-  },
-  {
-    "path": "cats/cat.365.jpg",
+    "path": "cats/cat.685.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.6303474307060242
+    "confidence": 0.5059025287628174
   },
   {
-    "path": "cats/cat.953.jpg",
+    "path": "cats/cat.853.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.5671703219413757
+    "confidence": 0.5918430089950562
   },
   {
     "path": "dogs/dog.732.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.5623831748962402
+    "confidence": 0.6815373301506042
   },
   {
     "path": "dogs/dog.568.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.6205205917358398
-  },
-  {
-    "path": "dogs/dog.404.jpg",
-    "true": "dog",
-    "pred": "cat",
-    "confidence": 0.5111121535301208
+    "confidence": 0.8366066217422485
   },
   {
     "path": "dogs/dog.439.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.9235137701034546
+    "confidence": 0.6906284093856812
   },
   {
     "path": "cats/cat.425.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.5969321131706238
+    "confidence": 0.7053856253623962
   },
   {
     "path": "dogs/dog.901.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.9138781428337097
+    "confidence": 0.6345008611679077
+  },
+  {
+    "path": "dogs/dog.556.jpg",
+    "true": "dog",
+    "pred": "cat",
+    "confidence": 0.7914995551109314
   },
   {
     "path": "dogs/dog.254.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7528215646743774
+    "confidence": 0.882946789264679
   },
   {
     "path": "dogs/dog.1302.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.5965155959129333
+    "confidence": 0.5064224004745483
   },
   {
     "path": "dogs/dog.465.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7459246516227722
+    "confidence": 0.8496025204658508
   },
   {
     "path": "cats/cat.376.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.9852861166000366
+    "confidence": 0.9864985942840576
+  },
+  {
+    "path": "cats/cat.1448.jpg",
+    "true": "cat",
+    "pred": "dog",
+    "confidence": 0.6356149911880493
   },
   {
     "path": "dogs/dog.12.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7738102674484253
+    "confidence": 0.6095791459083557
+  },
+  {
+    "path": "dogs/dog.576.jpg",
+    "true": "dog",
+    "pred": "cat",
+    "confidence": 0.7763127684593201
   },
   {
     "path": "cats/cat.859.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.9407784342765808
+    "confidence": 0.9642817378044128
   },
   {
     "path": "dogs/dog.866.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.7012654542922974
+    "confidence": 0.7010820508003235
   },
   {
     "path": "cats/cat.656.jpg",
     "true": "cat",
     "pred": "dog",
-    "confidence": 0.9572567939758301
+    "confidence": 0.9241487383842468
   },
   {
     "path": "dogs/dog.1355.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.9699448943138123
+    "confidence": 0.8666296005249023
   },
   {
     "path": "dogs/dog.816.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.5558936595916748
+    "confidence": 0.7284656167030334
+  },
+  {
+    "path": "dogs/dog.1394.jpg",
+    "true": "dog",
+    "pred": "cat",
+    "confidence": 0.5434570908546448
   },
   {
     "path": "dogs/dog.46.jpg",
     "true": "dog",
     "pred": "cat",
-    "confidence": 0.8679779171943665
+    "confidence": 0.9608666300773621
   }
 ]

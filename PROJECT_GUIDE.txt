@@ -676,8 +676,9 @@ The stage compares:
 Stage 4: original seed variability
 -------------------------
 
-The selected configuration is trained with seeds 42, 1, and 2. This shows
-how much the result depends on random initialization and batch order.
+The selected configuration is trained with seeds 42, 1, and 2. The seed is
+passed to model/training initialization and the training DataLoader generator,
+so it changes initialization, batch order, and worker randomness.
 
 Stage 5: fair long-budget retest
 --------------------------------
@@ -701,6 +702,10 @@ Each completed run records:
     train-validation accuracy gap
     all hyperparameter values
 
+Checkpointing and the final fair-seed rule use lowest validation loss.
+Validation accuracy is reported as a secondary metric and is not the
+selection criterion.
+
 The test set is intentionally not used during search. In this project it was
 evaluated for the original checkpoint and for the three fair augmented
 checkpoints after their validation results had been recorded. Test results
@@ -717,10 +722,11 @@ augmented version performed better and is now the promoted final model.
 
 The promoted final configuration keeps the same architecture and optimizer,
 but uses training augmentation, weight decay 1e-4, no dropout, scheduler
-enabled, a 100-epoch maximum, and patience 20. Its seed-42 validation
-accuracy was 81.7 percent, while the additional fair seeds achieved 83.1
-and 81.1 percent. Augmentation is therefore both implemented and selected
-for the current final checkpoint.
+enabled, a 100-epoch maximum, and patience 20. With the corrected
+seed-dependent DataLoader order, its fair augmented validation accuracies
+were 78.3, 83.9, and 79.2 percent. Augmentation is implemented and selected
+for the current final checkpoint, but its effect is interpreted with the
+updated seed variability.
 
 
 7. FINAL EVALUATION: src/evaluate.py
@@ -813,7 +819,7 @@ plot_gradcam() uses Gradient-weighted Class Activation Mapping. It:
 
 1. Runs one image through the model.
 2. Selects the predicted-minus-other class logit difference.
-3. Backpropagates that two-class score to the final convolutional layer.
+3. Backpropagates that two-class score to the final post-ReLU activation.
 4. Uses the average gradient in each channel as an importance weight.
 5. Forms a weighted sum of activation maps.
 6. Applies ReLU and normalizes the result. If the positive map is empty, the
@@ -824,10 +830,10 @@ plot_gradcam() uses Gradient-weighted Class Activation Mapping. It:
 Grad-CAM is useful because it gives a spatial indication of which regions
 supported the prediction. Correct and incorrect examples can reveal whether
 the model focuses on the animal or on shortcuts such as background, people,
-leashes, furniture, or image borders. The final convolutional map is coarse
+leashes, furniture, or image borders. The final activation map is coarse
 (16 by 16), so interpretations are hypotheses rather than proof. In the
-regenerated six-panel figure, three panels required the magnitude fallback;
-those panels should not be interpreted as strictly class-specific evidence.
+regenerated six-panel figure without a magnitude-fallback warning. The
+fallback remains an explicit safeguard for future checkpoints.
 
 The implementation produces three correct and three misclassified examples.
 Some heatmaps can emphasize people, furniture, or image borders rather than
@@ -1075,23 +1081,23 @@ parameters and uses the fair long-budget augmented configuration:
 
 Fair validation results were:
 
-    fair_aug     seed 42: 81.7 percent, validation loss 0.435
-    fair_aug_s1  seed 1:  83.1 percent, validation loss 0.423
-    fair_aug_s2  seed 2:  81.1 percent, validation loss 0.492
+    fair_aug     seed 42: 78.3 percent, validation loss 0.501
+    fair_aug_s1  seed 1:  83.9 percent, validation loss 0.434
+    fair_aug_s2  seed 2: 79.2 percent, validation loss 0.478
 
 The selected fair_aug_s1 checkpoint achieved on the held-out test set:
 
-    test accuracy: 81.39 percent
+    test accuracy: 81.94 percent
     test images: 360
     misclassified images: 67
 
 Its confusion matrix was:
 
-    [[160, 20],
-     [ 47,133]]
+    [[156, 24],
+     [ 41,139]]
 
-The three fair augmented test accuracies were 83.06, 81.39, and 80.00
-percent, with mean 81.48 percent and sample standard deviation 1.53
+The three corrected fair augmented test accuracies were 81.67, 81.94, and
+81.39 percent, with mean 81.67 percent and sample standard deviation 0.28
 percentage points. These are reported as a descriptive seed summary; the
 selected checkpoint is fair_aug_s1 because it had the lowest validation loss.
 
@@ -1106,9 +1112,9 @@ validation accuracy and 78.33 percent test accuracy. Keeping it as a backup
 makes the effect of the fair retest explicit and reproducible.
 
 The augmentation comparison is still suggestive rather than conclusive, but
-it now uses three seeds per setting. The no-augmentation runs averaged about
-78.1 percent validation accuracy (79.8, 77.5, and 76.9 percent), while the
-augmented runs averaged about 81.9 percent (81.7, 83.1, and 81.1 percent).
+it now uses three seeds per setting. The corrected no-augmentation runs averaged about 78.2 percent validation
+accuracy (76.9, 77.5, and 80.3 percent), while the corrected augmented runs
+averaged about 80.5 percent (78.3, 83.9, and 79.2 percent).
 The seed variation means this should not be described as a definitive causal
 effect, but the higher accuracy and lower validation loss support the
 interpretation that augmentation helped validation performance. For seed 42

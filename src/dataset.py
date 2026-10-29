@@ -71,7 +71,7 @@ def get_eval_transform():
     return get_transform(False, False, mean, std)
 
 
-def get_loaders(augment=True, batch_size=32, num_workers=None, subset=None):
+def get_loaders(augment=True, batch_size=32, num_workers=None, subset=None, seed=None):
     """Returns train, val, test loaders. `subset` = use only n train images"""
     num_workers = config.NUM_WORKERS if num_workers is None else num_workers
     split = load_split()
@@ -85,7 +85,7 @@ def get_loaders(augment=True, batch_size=32, num_workers=None, subset=None):
 
     kw = dict(num_workers=num_workers, pin_memory=torch.cuda.is_available(),
               persistent_workers=num_workers > 0)
-    g = torch.Generator().manual_seed(config.SEED)
+    g = torch.Generator().manual_seed(config.SEED if seed is None else seed)
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
                               generator=g, **kw)
     val_loader = DataLoader(val_ds, batch_size=64, shuffle=False, **kw)

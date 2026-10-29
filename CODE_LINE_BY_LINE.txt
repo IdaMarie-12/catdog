@@ -587,7 +587,8 @@ Lines 43-51: Stage 3
 
 Lines 52-57: Stage 4
     Trains the selected configuration with seeds 42, 1, and 2. These runs
-    measure sensitivity to initialization and batch order.
+    measure sensitivity to initialization, batch order, and augmentation
+    randomness. The seed is passed to the DataLoader generator.
 
 Lines 59-60
     Defines the CSV column order: metrics first, then all default
@@ -653,9 +654,9 @@ The completed results show that:
         The original augmented run had a shorter training budget, so
         augmentation and no augmentation were retrained for up to 100 epochs
         with patience 20 and ReduceLROnPlateau. The augmented configuration
-        achieved 81.7 percent validation accuracy for seed 42, and the two
-        additional seeds achieved 83.1 and 81.1 percent. This corrected
-        comparison led to the augmented model being promoted as final.
+        With seed-dependent DataLoader order, the augmented runs achieved
+        78.3, 83.9, and 79.2 percent validation accuracy. This corrected
+        comparison is the basis for the validation-loss selection rule.
 
 
 8. src/evaluate.py
@@ -728,14 +729,13 @@ Lines 94-98: _test_predictions()
     probabilities, labels, and test item records for reuse by several plots.
 
 Lines 101-115: _gradcam()
-    Selects the last convolutional layer, registers forward and backward
+    Selects the last post-ReLU activation, registers forward and backward
     hooks, backpropagates the predicted-minus-other logit difference,
     averages gradients over spatial positions, weights activation maps by
     those gradients, sums them, applies ReLU, normalizes, and returns the
     heatmap. If the positive map is empty, it reports the condition, uses the
-    magnitude of the signed map, and marks the panel title. Three of the six
-    regenerated panels used this fallback, so those maps are not strictly
-    class-specific evidence.
+    magnitude of the signed map, and marks the panel title. The regenerated
+    figure produced all six maps without that fallback.
 
 Lines 118-143: plot_gradcam()
     Selects correct and incorrect test examples, computes a Grad-CAM for the
@@ -869,31 +869,32 @@ has the lowest validation loss; it is copied to final.pth for submission.
 Their
 validation results were:
 
-    final     seed 42: 81.67 percent, validation loss 0.435
-    final_s1  seed 1:  83.06 percent, validation loss 0.423
-    final_s2  seed 2:  81.11 percent, validation loss 0.492
+    final     seed 42: 78.33 percent, validation loss 0.5008
+    final_s1  seed 1:  83.89 percent, validation loss 0.4342
+    final_s2  seed 2:  79.17 percent, validation loss 0.4784
 
 The selected fair_aug_s1 test evaluation was:
 
-    test accuracy: 81.39 percent
+    test accuracy: 81.94 percent
     test images: 360
     misclassified images: 67
 
 Confusion matrix, with true classes as rows and predictions as columns:
 
-    cat true: 160 cat predictions, 20 dog predictions
-    dog true:  47 cat predictions, 133 dog predictions
+    cat true: 156 cat predictions, 24 dog predictions
+    dog true:  41 cat predictions, 139 dog predictions
 
 The fair retest is reported separately because the original augmented run
 received a shorter training budget. The promoted model is selected using
-validation results. The three fair augmented test accuracies were 83.06,
-81.39, and 80.00 percent (mean 81.48 percent, sample standard deviation
-1.53 percentage points). The original test result was 78.33 percent.
+validation results. The three corrected fair augmented test accuracies were
+81.67, 81.94, and 81.39 percent (mean 81.67 percent, sample standard
+deviation 0.28 percentage points). The original test result was 78.33
+percent.
 
 The fair augmentation result is still suggestive rather than definitive, but
 it now uses three seeds per setting. The no-augmentation runs averaged about
-78.1 percent validation accuracy (79.8, 77.5, and 76.9 percent), versus
-about 81.9 percent for the augmented runs. The test set was evaluated twice
+78.2 percent validation accuracy (76.9, 77.5, and 80.3 percent), versus
+about 80.5 percent for the augmented runs. The test set was evaluated
 (78.3 percent for the original checkpoint and the three fair augmented
 results above), but promotion was based on validation results. The
 approximate 95 percent interval for the selected test accuracy is 77-85

@@ -135,7 +135,7 @@ def _test_predictions(model, device):
 
 def _gradcam(model, image, target, device):
     activations, gradients = [], []
-    layer = [m for m in model.features if isinstance(m, nn.Conv2d)][-1]
+    layer = [m for m in model.features if isinstance(m, nn.ReLU)][-1]
     forward_hook = layer.register_forward_hook(lambda _, __, output: activations.append(output))
     backward_hook = layer.register_full_backward_hook(lambda _, grad_input, grad_output:
                                                        gradients.append(grad_output[0]))
@@ -367,7 +367,7 @@ def plot_own_pets(model, device, out):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", required=True, help="checkpoint/run name of the final model")
-    ap.add_argument("--compare", nargs="*", default=["fair_noaug", "fair_aug"],
+    ap.add_argument("--compare", nargs="*", default=["fair_noaug_s1", "fair_aug_s1"],
                     help="other runs for the curves")
     args = ap.parse_args()
 

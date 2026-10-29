@@ -52,7 +52,7 @@ def train(cfg, name, overfit=False, verbose=True):
     set_seed(cfg["seed"])
     device = get_device()
     train_loader, val_loader, _ = get_loaders(
-        cfg["augment"], cfg["batch_size"], subset=subset)
+        cfg["augment"], cfg["batch_size"], subset=subset, seed=cfg["seed"])
 
     model = build_model(cfg).to(device)
     n_params = count_parameters(model)
