@@ -877,7 +877,7 @@ The selected fair_aug_s1 test evaluation was:
 
     test accuracy: 81.94 percent
     test images: 360
-    misclassified images: 67
+    misclassified images: 65
 
 Confusion matrix, with true classes as rows and predictions as columns:
 
@@ -892,18 +892,23 @@ deviation 0.28 percentage points). The original test result was 78.33
 percent.
 
 The fair augmentation result is still suggestive rather than definitive, but
-it now uses three seeds per setting. The no-augmentation runs averaged about
-78.2 percent validation accuracy (76.9, 77.5, and 80.3 percent), versus
-about 80.5 percent for the augmented runs. The test set was evaluated
+it now uses three seeds per setting. The no-augmentation runs had mean
+validation accuracy 78.24 percent (76.94, 77.50, and 80.28 percent), versus
+80.46 percent for the augmented runs (78.33, 83.89, and 79.17 percent), a
+2.22-point difference. The test set was evaluated
 (78.3 percent for the original checkpoint and the three fair augmented
 results above), but promotion was based on validation results. The
-approximate 95 percent interval for the selected test accuracy is 77-85
-percent.
+approximate binomial 95 percent interval for the selected test accuracy is
+77.5-85.5 percent. The 0.28-point standard deviation across three test
+evaluations is only a descriptive spread because all runs use the same 360
+images; it is not the uncertainty of one test accuracy.
 
-The fair model-size follow-up tested base widths 8 and 16. They reached
-77.8 percent with 24,778 parameters and 79.4 percent with 97,938 parameters,
-respectively. The 64-base model remains the accuracy choice, while the
-smaller runs provide evidence for the parameter/accuracy trade-off.
+The fair model-size follow-up tested base widths 8, 16, and 64 in the
+single-seed width plot. They reached 77.78 percent with 24,778 parameters,
+79.44 percent with 97,938 parameters, and 78.33 percent with 1,552,962
+parameters, respectively. The selected 64-base seed later reached 83.89
+percent, so these width results are noisy evidence rather than a monotonic
+scaling claim.
 
 
 13. IMPORTANT INTERPRETATION NOTES

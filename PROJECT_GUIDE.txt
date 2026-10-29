@@ -1089,7 +1089,7 @@ The selected fair_aug_s1 checkpoint achieved on the held-out test set:
 
     test accuracy: 81.94 percent
     test images: 360
-    misclassified images: 67
+    misclassified images: 65
 
 Its confusion matrix was:
 
@@ -1112,9 +1112,10 @@ validation accuracy and 78.33 percent test accuracy. Keeping it as a backup
 makes the effect of the fair retest explicit and reproducible.
 
 The augmentation comparison is still suggestive rather than conclusive, but
-it now uses three seeds per setting. The corrected no-augmentation runs averaged about 78.2 percent validation
-accuracy (76.9, 77.5, and 80.3 percent), while the corrected augmented runs
-averaged about 80.5 percent (78.3, 83.9, and 79.2 percent).
+it now uses three seeds per setting. The corrected no-augmentation runs had
+mean validation accuracy 78.24 percent (76.94, 77.50, and 80.28 percent),
+while the corrected augmented runs had mean 80.46 percent (78.33, 83.89,
+and 79.17 percent). The difference is 2.22 percentage points.
 The seed variation means this should not be described as a definitive causal
 effect, but the higher accuracy and lower validation loss support the
 interpretation that augmentation helped validation performance. For seed 42
@@ -1123,20 +1124,47 @@ memorization pattern seen without augmentation; the best-epoch gap bars do
 not prove a general gap reduction across seeds.
 The held-out test set was evaluated for the original checkpoint and for the
 three fair augmented seeds. Promotion was decided using validation results,
-not test results. The approximate 95 percent binomial interval for the
-selected 81.4 percent test accuracy is 77-85 percent.
+not test results. The 0.28-point standard deviation across three test
+evaluations is only a descriptive spread over the same 360 images. For the
+selected 81.94 percent test result, the approximate binomial 95 percent
+interval is 77.5-85.5 percent.
 
-The smaller-model follow-up used the same fair augmented recipe with base
-widths 8 and 16. The 8-base model has only 24,778 trainable parameters and
-reached 77.8 percent validation accuracy; the 16-base model has 97,938
-parameters and reached 79.4 percent. This supports the choice of the
-64-base model for accuracy, while also showing that a much smaller model
-can achieve a useful result at substantially lower complexity.
+The smaller-model follow-up used the same fair augmented recipe. In the
+single-seed width comparison, the 8-base model has 24,778 trainable
+parameters and reached 77.78 percent validation accuracy; the 16-base model
+has 97,938 parameters and reached 79.44 percent; and the 64-base model has
+1,552,962 parameters and reached 78.33 percent. The selected 64-base seed
+later reached 83.89 percent, so this is noisy evidence rather than a
+monotonic scaling claim.
 
 Training accuracy is measured with the configured training behavior, which
 can include augmentation and dropout. It should therefore not be compared
 to validation accuracy as if both were measured on exactly identical inputs
 and model modes.
+
+Open decisions and contribution list
+-------------------------------------
+
+No competition entry was made because this workspace contains neither a
+competition template nor an API. The presented model is the four-block,
+base-width-64 CNN with 1,552,962 trainable parameters; the architecture
+figure and parameter count refer to that model.
+
+The `my_pets/` evaluation contains four user-provided dog photographs. These
+predictions are qualitative and are not included in the test metric.
+
+Contributions:
+
+* Data preparation: deterministic stratified splitting, corrupt-image
+  handling, training-only augmentation, and training-set normalization.
+* Model and training: configurable CNN, optimizer and scheduler options,
+  early stopping, checkpointing, and seed-dependent loader randomness.
+* Experiments: staged ablations, fair augmentation comparison, width
+  comparison, and validation-loss-based final selection.
+* Evaluation: held-out metrics, confusion matrix, error analysis, Grad-CAM,
+  architecture and parameter figures, and `my_pets/` inference.
+* Reliability and documentation: sanity tests, saved-split consistency,
+  reproducible commands, project guide, and line-by-line explanation.
 
 
 11. TESTS AND WHY THEY MATTER
